@@ -13,12 +13,11 @@ The site uses plain HTML and CSS. It has no build step, analytics, trackers, coo
 
 ## Before publishing or resubmitting to Twilio
 
-1. Replace `[CONTACT EMAIL TO BE ADDED]` in `privacy.html` and `terms.html` with the project contact email.
-2. Confirm the linked Google Form is public and contains an explicit, unchecked SMS-consent checkbox with disclosures matching `consent.html`.
-3. Publish this repository through GitHub Pages from the `main` branch and root (`/`) folder.
-4. Test every public page in a private/incognito window while logged out of both GitHub and Google.
-5. Have the real caregiver complete the consent form. Never place the caregiver's response or private information in this repository.
-6. Resubmit the existing rejected Twilio campaign; do not create a second campaign.
+1. Confirm the linked Google Form is public and contains an explicit, unchecked SMS-consent checkbox with disclosures matching `consent.html`.
+2. Publish this repository through GitHub Pages from the `main` branch and root (`/`) folder.
+3. Test every public page in a private/incognito window while logged out of both GitHub and Google.
+4. Have the real caregiver complete the consent form. Never place the caregiver's response or private information in this repository.
+5. Resubmit the existing rejected Twilio campaign; do not create a second campaign.
 
 ## Local preview
 
