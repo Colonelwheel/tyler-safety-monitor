@@ -14,7 +14,7 @@ import time
 
 from PySide6.QtWidgets import (
     QCheckBox, QComboBox, QDoubleSpinBox, QFileDialog, QHBoxLayout, QLabel,
-    QMessageBox, QPushButton, QVBoxLayout, QWidget,
+    QMessageBox, QPushButton, QSizePolicy, QVBoxLayout, QWidget,
 )
 
 from .calibration import (
@@ -98,6 +98,10 @@ class MilestoneTools(QWidget):
         self.stop_button = self.add_button(layout, "Stop / Review Capture", self.stop_capture)
         self.status = QLabel("No capture started. Five-second delay, then at most 15 seconds. Images are not saved.")
         self.status.setWordWrap(True)
+        # Status text must not force the calibration controls wider than the panel.
+        status_policy = self.status.sizePolicy()
+        status_policy.setHorizontalPolicy(QSizePolicy.Policy.Ignored)
+        self.status.setSizePolicy(status_policy)
         layout.addWidget(self.status)
         layout.addWidget(QLabel("Intentional-lean wiggle room • proposal only"))
         self.margin = QDoubleSpinBox()
@@ -151,6 +155,8 @@ class MilestoneTools(QWidget):
 
     def message(self, text):
         self.status.setText(text)
+        self.status.setToolTip("")
+        self.status.setAccessibleDescription("")
         if hasattr(self.dashboard, "capture_banner"):
             # Keep capture state and Stop / Review outside the scroll panel.
             if self.state in {"delay", "capturing"}:
@@ -393,7 +399,11 @@ class MilestoneTools(QWidget):
                 self.saved_sample_count = len(self.samples)
             profile = replace(self.profile, capture_steps=tuple(self.steps_taken) or self.profile.capture_steps)
             path = save_profile(profile)
-            self.message(f"New profile saved: {path}\n" + (f"New feature replay: {feature_path}" if feature_path else "Existing files retained."))
+            details = f"New profile saved: {path}\n" + (f"New feature replay: {feature_path}" if feature_path else "Existing files retained.")
+            self.message("New profile saved in the local calibration folder.\n" +
+                ("New feature replay saved. Existing files retained." if feature_path else "Existing files retained."))
+            self.status.setToolTip(details)
+            self.status.setAccessibleDescription(details)
         except (OSError, ValueError, RuntimeError) as error:
             self.message(f"Save incomplete; any successfully created files were preserved. {error}")
 

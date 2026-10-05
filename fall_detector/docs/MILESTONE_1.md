@@ -116,3 +116,43 @@ Milestone 2 source implementation needs new approval. Its deterministic simulate
 state machine may start with synthetic sequences and uncalibrated status; no
 unreviewed personal boundaries may become operational thresholds, and no live
 caregiver alerts may be enabled.
+
+## Separately approved live follow-up — October 5, 2026
+
+After implementation, Tyler separately approved feature-only collection and
+new private profile/replay files, then session-limited dashboard screenshot
+inspection. Ordinary posture and optional already-safe head-down/recovery
+captures completed through the visible guided controls. Both saved profile and
+feature schemas validated; person observations were present throughout these
+short samples. The two steps remain separate saved sessions after application
+restart. All actual geometry, features, filenames and imagery stay outside Git.
+No camera images or audio were recorded by the monitor. A new local reflection-mask
+settings revision was saved, preserving earlier files.
+
+A running dashboard reported the Full model missing even though its file was
+readable and a camera-free initialization succeeded. Application restart
+restored live tracking; a subsequent normal launch with the default model also
+worked and loaded the saved mask. The original failure's cause was not confirmed;
+no model download, reinstall or model-path source change was needed. The normal
+application was left running with no active capture. Recheck ownership and health
+before resuming.
+
+Saving exposed a status-label layout defect: long Windows filenames widened the
+calibration panel and hid controls. Tyler approved a targeted follow-up fix. The
+label now permits horizontal shrinking and displays a compact save confirmation;
+exact paths remain in its tooltip and accessible description. Those details clear
+on later status updates. All 209 synthetic tests passed, including a regression
+that long save paths do not increase the panel width or horizontal scroll range.
+The revised label has not yet been checked in the live application after restart.
+
+Tyler requested continuation later. Saved profiles have no reviewed zones and
+retain zero lean margin. A possible small allowance was discussed but not applied
+or approved as a threshold. Review proposed envelopes and day-to-day allowance
+from the existing private features next; do not require repeated movements just
+to recover these samples. Routine-adjustment/darkest-light collection, assisted
+boundaries, real caregiver/two-person validation and sustained stability remain
+pending. These short captures establish no safety accuracy or live-alert approval.
+The tracked head-position ranges overlap; the optional step includes recovery.
+There is measurable movement, but reliable posture discrimination is not yet
+demonstrated. Evaluate tilt as well as position using replay before treating a
+personal zone or allowance as suitable for detection.

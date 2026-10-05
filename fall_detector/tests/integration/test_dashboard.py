@@ -591,3 +591,32 @@ def test_controls_expose_observation_status_and_no_emergency_or_messaging_action
     assert not any("SMS" in label or "Choking" in label or "Possible Fall" in label for label in labels)
     for control in window.findChildren(QPushButton):
         assert control.minimumHeight() >= 60 and control.accessibleName()
+
+
+def test_long_saved_paths_do_not_widen_calibration_controls(window, application, monkeypatch):
+    tools, _, _ = ready_tools(window, monkeypatch)
+    tools.request_capture()
+    tools.stop_capture()
+    tools.samples = [FeatureSample(100, 1, (PoseObservation((.5, .5), None, .9),))]
+    profile_path = Path(r"C:\Users\SyntheticUser\AppData\Local\TylerSafetyMonitor\calibration\profiles\profile-20261005T000000000000Z-aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.json")
+    feature_path = Path(r"C:\Users\SyntheticUser\AppData\Local\TylerSafetyMonitor\calibration\replays\features-20261005T000000000000Z-bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb.json")
+    monkeypatch.setattr(tooling, "save_profile", lambda profile: profile_path)
+    monkeypatch.setattr(tooling, "save_sequence", lambda sequence: feature_path)
+    window.tabs.setCurrentIndex(1)
+    window.show()
+    application.processEvents()
+    scroll = window.tabs.widget(1)
+    baseline_width = window.tools.minimumSizeHint().width()
+    baseline_scroll = scroll.horizontalScrollBar().maximum()
+    tools.request_save()
+    application.processEvents()
+    assert "New profile saved" in tools.status.text()
+    assert "New feature replay saved" in tools.status.text()
+    assert str(profile_path) in tools.status.toolTip()
+    assert str(feature_path) in tools.status.accessibleDescription()
+    assert "SyntheticUser" not in tools.status.text()
+    assert tools.status.wordWrap() and tools.status.hasHeightForWidth()
+    assert tools.minimumSizeHint().width() <= baseline_width
+    assert scroll.horizontalScrollBar().maximum() <= baseline_scroll
+    tools.message("Next capture is idle")
+    assert not tools.status.toolTip() and not tools.status.accessibleDescription()
