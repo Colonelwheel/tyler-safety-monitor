@@ -8,7 +8,7 @@ The site uses plain HTML and CSS. It has no build step, analytics, trackers, coo
 
 - `PROJECT_ROADMAP.md` — durable project status and staged roadmap
 - `FALL_DETECTOR_BLUEPRINT.md` — approved safety, accessibility, architecture, and validation requirements
-- `NEXT_CHAT_HANDOFF.md` — ready-to-use prompt for the first implementation task
+- `NEXT_CHAT_HANDOFF.md` — ready-to-use prompt and current context for the next milestone
 - `fall_detector/` — reserved home for the Windows application
 
 Milestone 0 is implemented as an observation-only Windows tray/dashboard application. See [`fall_detector/README.md`](fall_detector/README.md) for the isolated launch instructions and measured feasibility limits. Emergency detection, caregiver audio switching, and real messaging are not implemented in this milestone. Runtime photographs, recordings, logs, databases, credentials, phone numbers, and caregiver information must never be committed.

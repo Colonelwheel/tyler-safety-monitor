@@ -202,9 +202,9 @@ These must not be guessed when their implementation stage arrives:
 5. Detailed Android USB/cellular fallback design.
 6. Later escalation beyond SMS, including voice calls, additional contacts, professional monitoring, or emergency services.
 
-## First task for the camera-program phase
+## Next task for the camera-program phase
 
-Read `FALL_DETECTOR_BLUEPRINT.md` and `NEXT_CHAT_HANDOFF.md`, then begin **Milestone 0 — Foundation and camera feasibility**. Do not silently change approved safety, accessibility, privacy, or alert-escalation behavior.
+Read `FALL_DETECTOR_BLUEPRINT.md` and `NEXT_CHAT_HANDOFF.md`, then inspect and propose **Milestone 1 — Calibration and recorded-data harness**. Obtain approval before its source-code implementation or camera recording. Do not silently change approved safety, accessibility, privacy, or alert-escalation behavior.
 
 Milestone 0 implementation is now complete within the explicitly limited observation scope. Tyler deferred caregiver-entry samples; true simultaneous two-person tracking remains unvalidated. Do not proceed to Milestone 1 without approval for that new scope. The supplied lighting photographs were ordinary photographs, not instructed movement tests.
 

@@ -15,6 +15,14 @@ Read every project-authored Markdown document before implementation changes. Tre
   2026; it supersedes earlier instructions in the blueprint and handoff to agree
   on a source-code commit message.
 - Verify finished work, review staged files for private data, then commit and push.
+- **Whenever a milestone is complete, create or update `NEXT_CHAT_HANDOFF.md`
+  for the next milestone before finishing.** Include the completed milestone's
+  implementation and verification, known limitations, deferred validation,
+  current launch instructions, and a ready-to-use next-chat prompt. Keep the
+  next milestone's approval boundaries explicit; a handoff does not authorize
+  its source changes or recording. Verify, commit, and push the handoff with
+  the finished project work. Tyler requested this standing rule on October 5,
+  2026.
 
 ## Preservation and scope
 
