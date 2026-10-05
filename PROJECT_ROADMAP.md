@@ -29,6 +29,7 @@ Status updated: October 5, 2026.
 - Twilio approved the A2P campaign on September 10, 2026.
 - A Twilio number is assigned to the approved campaign; real test messaging is not yet complete.
 - Milestone 0 now provides an isolated Python 3.12 Windows tray/dashboard, memory-only C920 capture, ROI/exclusion editing, observational pose candidates, manual app-volume controls, and local benchmark tools. Emergency detection and caregiver messaging remain disabled. See `fall_detector/docs/MILESTONE_0.md` for measurements and deferred validation.
+- Milestone 1 adds guided feature-only capture with separate confirmation, a five-second delay and 15-second limit, versioned private calibration profiles, reviewed/proposed zones, landmark confidence, bounded head paths, synthetic feature replay, and ordered approved-local-clip analysis. Synthetic tooling verification is complete; actual calibration and physical validation remain pending. See `fall_detector/docs/MILESTONE_1.md`.
 - The implementation requirements are now defined in `FALL_DETECTOR_BLUEPRINT.md`.
 
 Never commit caregiver details, phone numbers, consent-form responses, Twilio credentials, Pushover credentials, or other secrets to this repository.
@@ -204,9 +205,11 @@ These must not be guessed when their implementation stage arrives:
 
 ## Next task for the camera-program phase
 
-Read `FALL_DETECTOR_BLUEPRINT.md` and `NEXT_CHAT_HANDOFF.md`, then inspect and propose **Milestone 1 — Calibration and recorded-data harness**. Obtain approval before its source-code implementation or camera recording. Do not silently change approved safety, accessibility, privacy, or alert-escalation behavior.
+Read `FALL_DETECTOR_BLUEPRINT.md` and `NEXT_CHAT_HANDOFF.md`, then inspect and propose **Milestone 2 — Detection state machine**. Obtain approval before its source-code implementation or personalized collection. Do not silently change approved safety, accessibility, privacy, or alert-escalation behavior.
 
-Milestone 0 implementation is now complete within the explicitly limited observation scope. Tyler deferred caregiver-entry samples; true simultaneous two-person tracking remains unvalidated. Do not proceed to Milestone 1 without approval for that new scope. The supplied lighting photographs were ordinary photographs, not instructed movement tests.
+Milestones 0 and 1 tooling are complete within the limited observation/calibration/replay scope. Milestone 1 source and documentation were approved October 5, 2026; real personalized data was not collected. Tyler deferred caregiver-entry samples; true simultaneous two-person tracking remains unvalidated. Milestone 2 requires new approval. The supplied lighting photographs were ordinary photographs, not instructed movement tests.
+
+Tyler clarified on October 5 that safe intentional head-down depth varies slightly between days. The intentional-lean proposal has a small, explicitly reviewable margin control (zero by default, expressed in original-frame coordinates); its UI limit is not an approved safety threshold. Do not fit final soft/hard boundaries to today's maximum, automatically expand danger boundaries, or assume that the approved 30-second ordinary-lean grace period compensates for missed severe recognition.
 
 On October 5, 2026, Tyler expanded that deferral to actual caregiver involvement throughout development: schedule it as late as practical, normally consolidating sessions with **Milestone 6 — Supervised validation**. Build tooling and simulated caregiver tests first while implementing caregiver behavior in its approved milestones. Leave assisted calibration pending rather than asking Tyler to perform unsafe solo movements. If a concrete dependency or safety requirement needs earlier participation, explain the reason and agree on the smallest necessary session. Required real caregiver calibration and validation must still be completed before live alerts are enabled; this scheduling preference does not remove acceptance gates.
 

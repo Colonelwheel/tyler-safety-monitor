@@ -1,8 +1,8 @@
-# Fall Detector — Milestone 0 observation dashboard
+# Fall Detector — Observation, calibration and replay dashboard
 
 The approved requirements are in [`../FALL_DETECTOR_BLUEPRINT.md`](../FALL_DETECTOR_BLUEPRINT.md).
-This milestone provides camera capture, person-candidate overlays, ROI/exclusion
-editing, and an accessible tray dashboard. **Emergency detection and caregiver
+Milestones 0 and 1 provide camera capture, person-candidate overlays, ROI/exclusion
+editing, guided feature calibration, replay, and an accessible tray dashboard. **Emergency detection and caregiver
 messaging are disabled. It is not an armed safety monitor.**
 
 Read all project Markdown and [`../AGENTS.md`](../AGENTS.md) before implementation.
@@ -27,6 +27,79 @@ volume; it never unmutes or changes Windows output volume. No automatic audio,
 choking-volume override, or caregiver muting runs in this observation milestone.
 The blueprint's audio priority and restoration rules remain requirements for
 their later implementation.
+
+## Calibration and replay
+
+The **Calibration / Replay** tab provides **Synthetic Replay Demo** without
+requiring movement, a recording, a model run, or camera access. To open the
+dashboard with the camera paused, launch from PowerShell at the repository root:
+
+```powershell
+& .\fall_detector\.venv\Scripts\pythonw.exe -B -m tyler_safety_monitor --no-camera --show
+```
+
+Keep only one dashboard/camera owner running. Return from replay using **Live
+View — Camera Stays Paused**, then start the camera explicitly when ready.
+
+Actual calibration remains pending. Before moving, read the selected safe-step
+explanation, review the fixed camera/reflection mask, choose your visible person
+candidate, and approve the separate feature-only capture confirmation. The flow
+uses a visible five-second delay and at most 15 seconds per step. **Stop / Review
+Capture** stays visible outside the setup scroll area. Closing/hiding/minimizing
+the dashboard or losing fresh observations ends collection; ordinary background
+camera processing retains its existing behavior.
+
+The first step is ordinary safe posture with no special movement. Routine small
+adjustments and an optional already-safe head-down/recovery step follow only
+when ready. Do not seek your deepest position, hold down for 30 seconds for
+calibration, or recreate an airway-obstructing posture. Assisted and caregiver
+steps stay pending until supervised validation. No caregiver samples are needed
+to use the tooling now.
+
+Capture retains derived pose coordinates and confidence in memory; **no camera
+images, video or audio are saved**. **Save New Profile / Features** separately
+asks before creating private files under `%LOCALAPPDATA%\TylerSafetyMonitor\calibration\profiles`
+and `calibration\replays`. Earlier files are retained. **New Session — Keep Saved
+Files** asks before clearing in-memory edits; it never deletes saved files. Use
+a new session when changing camera, scene, or candidate. Unsaved samples are not
+persisted on application exit.
+
+Propose safe/intentional-lean envelopes from observed points or draw a proposed
+zone with two separate preview taps. Review zones individually before saving.
+The intentional-lean wiggle-room control starts at zero and offers large **Less**
+and **More** actions in 0.1% original-frame steps up to 2%. This editor range is
+not a safe-distance recommendation or a reviewed threshold; image distances are
+not inches or anatomical depth. Margin changes invalidate the lean review and
+never expand a hard danger boundary. No soft/hard zones are inferred from the
+earlier photographs. The ordinary-lean 30-second rule remains Milestone 2 work.
+
+Profiles preserve camera/model/scene provenance and proposed/reviewed status.
+Loaded overlays are hidden when available camera/model/dimensions/scene metadata
+differs or cannot be verified. A matching metadata record cannot prove that the
+physical camera or room did not move; review the actual scene before reuse.
+
+Feature replay uses original source timestamps, its own playback clock, and
+original normalized coordinates/aspect ratio. Paths break at gaps, missing
+observations and association uncertainty. Per-landmark scores are visibility/
+presence estimates: green at least 80%, amber 50–80%, invisible below 50%. They
+are not calibrated accuracy or danger probability. All people remain candidates.
+
+For an already-approved local clip, an explicit offline command analyzes frames
+in order in a bounded child process and creates a **new feature file only**:
+
+```powershell
+& .\fall_detector\.venv\Scripts\python.exe -B .\fall_detector\scripts\replay_clip.py --clip <approved-local-clip> --model <local-task-model> --output "$env:LOCALAPPDATA\TylerSafetyMonitor\calibration\replays\new-unique-name.json" --scene <local-scene-json> --timestamps <local-timestamp-sidecar>
+```
+
+`--scene` accepts the `roi`/`exclusions` object; `--timestamps` accepts
+`{"schema_version":1,"timestamps":[0.0,0.071,0.143]}` with exactly one source time
+per decoded frame. Both are optional, but omission means full-frame/unmasked
+analysis or nominal clip-FPS timing, respectively. Nominal FPS cannot recover
+the original camera cadence. Output must remain beneath the private local replay
+directory and must not already exist. No source clip/model is changed or
+downloaded. A stalled analysis is terminated after `--timeout` seconds (600 by
+default); any partial new output remains for inspection. See
+[Milestone 1 verification and limits](docs/MILESTONE_1.md).
 
 ## Region editing
 
@@ -106,9 +179,9 @@ for Milestone 0, and no airway-obstructing posture should ever be requested.
 
 ## Runtime data and scope
 
-New settings revisions, explicitly downloaded models, and the plotting-library
+New settings/profile/feature revisions, explicitly downloaded models, and the plotting-library
 cache live under `%LOCALAPPDATA%\TylerSafetyMonitor`. Capture and inference frames
-stay in memory. There is no recording, event database, Twilio client, credential
+stay in memory. Approved derived features can be saved, but there is no imagery recording, event database, Twilio client, credential
 store, watchdog, startup registration, or LAN control server in this milestone.
 
 `.gitignore` excludes private media and generated outputs. The staged-file gate

@@ -21,12 +21,24 @@ def _point(point: Sequence[float], name: str) -> tuple[float, float]:
     return values
 
 
+def _landmark_scores(scores, landmarks) -> tuple[tuple[float, float], ...]:
+    """Validate optional paired visibility/presence metadata, in landmark order."""
+    values = tuple(tuple(float(value) for value in pair) for pair in scores)
+    if values and len(values) != len(landmarks):
+        raise ValueError("landmark scores must match the landmark count")
+    if any(len(pair) != 2 or any(not isfinite(value) or not 0 <= value <= 1
+                                 for value in pair) for pair in values):
+        raise ValueError("landmark scores must contain finite [0, 1] visibility/presence pairs")
+    return values
+
+
 @dataclass(frozen=True)
 class PoseObservation:
     head: tuple[float, float]
     shoulders: tuple[float, float] | None
     confidence: float
     landmarks: tuple[tuple[float, float, float], ...] = ()
+    landmark_scores: tuple[tuple[float, float], ...] = ()
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "head", _point(self.head, "head"))
@@ -40,6 +52,7 @@ class PoseObservation:
         if any(len(point) != 3 or any(not isfinite(v) for v in point) for point in landmarks):
             raise ValueError("landmarks must contain finite x, y, z triples")
         object.__setattr__(self, "landmarks", landmarks)
+        object.__setattr__(self, "landmark_scores", _landmark_scores(self.landmark_scores, landmarks))
 
 
 @dataclass(frozen=True)
@@ -53,6 +66,10 @@ class Track:
     landmarks: tuple[tuple[float, float, float], ...] = ()
     label: str = "person candidate"
     identity_uncertain: bool = False
+    landmark_scores: tuple[tuple[float, float], ...] = ()
+
+    def __post_init__(self) -> None:
+        object.__setattr__(self, "landmark_scores", _landmark_scores(self.landmark_scores, self.landmarks))
 
 
 def _distance(a: tuple[float, float], b: tuple[float, float]) -> float:
@@ -147,7 +164,8 @@ class PersonTracker:
                 else timestamp
             )
             track = Track(id_, obs.head, obs.shoulders, obs.confidence, timestamp,
-                          continuous_since, obs.landmarks, identity_uncertain=uncertain)
+                          continuous_since, obs.landmarks, identity_uncertain=uncertain,
+                          landmark_scores=obs.landmark_scores)
             previous[id_] = track
             visible.append(track)
         self._tracks = previous

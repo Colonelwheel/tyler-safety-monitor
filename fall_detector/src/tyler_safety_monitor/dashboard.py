@@ -8,11 +8,11 @@ import time
 import threading
 
 import cv2
-from PySide6.QtCore import QRectF, Qt, QTimer, Signal
+from PySide6.QtCore import QEvent, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QColor, QIcon, QImage, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QApplication, QComboBox, QGridLayout, QHBoxLayout, QLabel, QMainWindow,
-    QMenu, QPushButton, QScrollArea, QSpinBox, QSystemTrayIcon, QVBoxLayout, QWidget,
+    QMenu, QPushButton, QScrollArea, QSpinBox, QSystemTrayIcon, QTabWidget, QVBoxLayout, QWidget,
 )
 
 from .audio import TestSound
@@ -33,9 +33,14 @@ class Preview(QWidget):
         self.tracks = []
         self.pending_corner = None
         self.caption = "Waiting for camera"
+        self.geometry_available = False
+        self.frame_ratio = 16 / 9
+        self.trajectory_segments = {}
+        self.zones = {}
+        self.reviewed_zones = set()
 
     def image_rect(self) -> QRectF:
-        ratio = self.image.width() / self.image.height() if self.image is not None else 16 / 9
+        ratio = self.image.width() / self.image.height() if self.image is not None else self.frame_ratio
         width = min(self.width(), self.height() * ratio)
         height = width / ratio
         return QRectF((self.width() - width) / 2, (self.height() - height) / 2, width, height)
@@ -44,6 +49,8 @@ class Preview(QWidget):
         rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         height, width = rgb.shape[:2]
         self.image = QImage(rgb.data, width, height, rgb.strides[0], QImage.Format.Format_RGB888).copy()
+        self.geometry_available = True
+        self.frame_ratio = width / height
         self.update()
 
     def paintEvent(self, event) -> None:
@@ -64,6 +71,23 @@ class Preview(QWidget):
             painter.fillRect(box(exclusion), QColor(5, 5, 5, 200))
             painter.setPen(QPen(QColor("#ffbd66"), 3))
             painter.drawRect(box(exclusion))
+        for name, rect in self.zones.items():
+            reviewed = name in self.reviewed_zones
+            color = QColor("#8bdd98" if reviewed else "#df8cff")
+            pen = QPen(color, 2)
+            if not reviewed:
+                pen.setStyle(Qt.PenStyle.DashLine)
+            painter.setPen(pen)
+            region = box(rect)
+            painter.drawRect(region)
+            painter.drawText(int(region.x() + 4), int(region.y() + 18),
+                             name.replace("_", " ") + (" • reviewed" if reviewed else " • proposed"))
+        painter.setPen(QPen(QColor("#66dbff"), 2))
+        for segments in self.trajectory_segments.values():
+            for segment in segments:
+                for a, b in zip(segment, segment[1:]):
+                    painter.drawLine(int(area.x() + a[0] * area.width()), int(area.y() + a[1] * area.height()),
+                                     int(area.x() + b[0] * area.width()), int(area.y() + b[1] * area.height()))
         for track in self.tracks:
             x = area.x() + track.head[0] * area.width()
             y = area.y() + track.head[1] * area.height()
@@ -71,6 +95,13 @@ class Preview(QWidget):
             painter.setPen(QPen(color, 3))
             painter.drawEllipse(QRectF(x - 9, y - 9, 18, 18))
             painter.drawText(int(x + 14), int(y), f"P{track.id}  {track.confidence:.0%}")
+            for point, scores in zip(track.landmarks, getattr(track, "landmark_scores", ())):
+                confidence = min(scores)
+                # Never render invisible inferred limbs as confirmed landmarks.
+                if confidence < 0.5 or not self.scene.accepts_point(point[0], point[1]):
+                    continue
+                painter.setPen(QPen(QColor("#8bdd98" if confidence >= 0.8 else "#ffd66e"), 3))
+                painter.drawPoint(int(area.x() + point[0] * area.width()), int(area.y() + point[1] * area.height()))
             if track.shoulders:
                 sx = area.x() + track.shoulders[0] * area.width()
                 sy = area.y() + track.shoulders[1] * area.height()
@@ -82,7 +113,7 @@ class Preview(QWidget):
             painter.drawEllipse(QRectF(x - 8, y - 8, 16, 16))
 
     def mousePressEvent(self, event) -> None:
-        if event.button() != Qt.MouseButton.LeftButton or self.image is None:
+        if event.button() != Qt.MouseButton.LeftButton or not self.geometry_available:
             return
         area = self.image_rect()
         if area.contains(event.position()):
@@ -103,7 +134,7 @@ class Dashboard(QMainWindow):
 
     def __init__(self, model_path: Path, enable_camera: bool = True) -> None:
         super().__init__()
-        self.setWindowTitle("Tyler Safety Monitor — Camera Feasibility")
+        self.setWindowTitle("Tyler Safety Monitor — Calibration and Replay")
         self.resize(1400, 900)
         self.settings, settings_status = load_settings()
         self.model_path = model_path
@@ -123,6 +154,9 @@ class Dashboard(QMainWindow):
         self._blocked_pose = None
         self._cleanup_failed = False
         self._failed_workers = None
+        self._pose_inputs = {}
+        self._model_timestamp = -1
+        self._capture_generation = 0
         self.cleanup_finished.connect(self.finish_cleanup)
         self.preview = Preview()
         self.preview.scene = self.settings.scene
@@ -135,6 +169,13 @@ class Dashboard(QMainWindow):
         banner.setWordWrap(True)
         banner.setStyleSheet("background:#5b3d11;color:#ffe4ac;padding:14px;font-weight:700")
         main.addWidget(banner)
+        capture_row = QHBoxLayout()
+        self.capture_banner = QLabel("Calibration idle • no personal data collected")
+        self.capture_banner.setWordWrap(True)
+        capture_row.addWidget(self.capture_banner, 1)
+        self.capture_stop = button("Stop / Review Capture", lambda: self.tools.stop_capture())
+        capture_row.addWidget(self.capture_stop)
+        main.addLayout(capture_row)
         main.addWidget(self.preview, 1)
         # Keep the essential volume controls visible without scrolling the
         # setup panel, even on Windows displays with large text scaling.
@@ -154,6 +195,9 @@ class Dashboard(QMainWindow):
         self.pose_status.setWordWrap(True)
         main.addWidget(self.pose_status)
         main.addWidget(QLabel("Tracks are person candidates. No fall classification or caregiver confirmation."))
+        legend = QLabel("Landmark scores: green ≥80%, amber 50–80%, hidden below 50%. Visibility/presence scores are not safety accuracy.")
+        legend.setWordWrap(True)
+        main.addWidget(legend)
         layout.addLayout(main, 3)
 
         panel = QWidget()
@@ -204,7 +248,16 @@ class Dashboard(QMainWindow):
         scroll.setWidgetResizable(True)
         scroll.setWidget(panel)
         scroll.setMinimumWidth(350)
-        layout.addWidget(scroll, 1)
+        from .calibration_ui import MilestoneTools
+        self.tools = MilestoneTools(self)
+        tools_scroll = QScrollArea()
+        tools_scroll.setWidgetResizable(True)
+        tools_scroll.setWidget(self.tools)
+        self.tabs = QTabWidget()
+        self.tabs.setMinimumWidth(440)
+        self.tabs.addTab(scroll, "Camera / Masks")
+        self.tabs.addTab(tools_scroll, "Calibration / Replay")
+        layout.addWidget(self.tabs, 1)
         self.setCentralWidget(central)
         self.setStyleSheet("""
             QWidget {background:#182235;color:#e4ecf7;font-size:16px;}
@@ -265,18 +318,30 @@ class Dashboard(QMainWindow):
         self.activateWindow()
 
     def minimize_dashboard(self) -> None:
+        self.tools.stop_capture("Dashboard minimized; capture ended so controls remain visible during collection.")
         if self.tray_available:
             self.hide()
         else:
             self.showMinimized()
 
     def closeEvent(self, event) -> None:
+        self.tools.stop_capture("Dashboard closed; capture ended and features retained for review.")
         if self.tray_available and not self.shut_down:
             event.ignore()
             self.hide()
         else:
             event.accept()
             QApplication.instance().quit()
+
+    def changeEvent(self, event) -> None:
+        if event.type() == QEvent.Type.WindowStateChange and self.isMinimized() and hasattr(self, "tools"):
+            self.tools.stop_capture("Window minimized; feature collection stopped and data retained.")
+        super().changeEvent(event)
+
+    def hideEvent(self, event) -> None:
+        if hasattr(self, "tools"):
+            self.tools.stop_capture("Dashboard hidden; feature collection stopped and data retained.")
+        super().hideEvent(event)
 
     def read_controls(self) -> AppSettings:
         return replace(self.settings, camera_index=self.camera_index.value(),
@@ -304,6 +369,15 @@ class Dashboard(QMainWindow):
         self._start_camera()
 
     def _start_camera(self) -> None:
+        if self.tools.player is not None:
+            self.tools.leave_replay()
+        self.tools.trajectory.clear()
+        self.preview.trajectory_segments = {}
+        self.preview.zones = {}
+        self.preview.reviewed_zones = set()
+        self._pose_inputs.clear()
+        self._model_timestamp = -1
+        self._capture_generation += 1
         self.settings = self.read_controls()
         self.capture = CameraCapture(CameraSettings(index=self.settings.camera_index,
                                       backend=self.settings.backend, fps=self.settings.fps))
@@ -324,6 +398,13 @@ class Dashboard(QMainWindow):
             self.pose_status.setText("Pose model missing. Download it explicitly using the documented model command.")
 
     def pause_camera(self) -> None:
+        self.tools.stop_capture("Camera paused; previously collected features remain in memory.")
+        self.tools.last_live_tracks = []
+        self.tools.trajectory.clear()
+        self.preview.trajectory_segments = {}
+        self.preview.zones = {}
+        self.preview.reviewed_zones = set()
+        self._pose_inputs.clear()
         self._restart_requested = False
         self.sound.stop()
         capture, pose = self.capture, self.pose
@@ -347,6 +428,7 @@ class Dashboard(QMainWindow):
         self.preview.tracks = []
         self.preview.caption = "Camera paused"
         self.preview.image = None
+        self.preview.geometry_available = False
         self.preview.update()
         self.health.setText("Camera paused • no automatic monitoring or messaging")
         self.pose_status.setText("Pose processing paused")
@@ -366,6 +448,12 @@ class Dashboard(QMainWindow):
             self._start_camera()
 
     def begin_edit(self, mode: str) -> None:
+        if self.tools.state in {"delay", "capturing"}:
+            self.edit_status.setText("Stop / Review calibration before editing the scene.")
+            return
+        if self.tools.player is not None and not mode.startswith("zone:"):
+            self.edit_status.setText("Return to live view before changing camera ROI or masks.")
+            return
         self.edit_mode = mode
         self.preview.pending_corner = None
         self.edit_status.setText("Tap the first corner in the preview, then the opposite corner.")
@@ -386,7 +474,14 @@ class Dashboard(QMainWindow):
         else:
             try:
                 rect = Rect.from_corners(*self.preview.pending_corner, x, y)
-                if self.edit_mode == "roi":
+                if self.edit_mode.startswith("zone:"):
+                    self.tools.set_zone(self.edit_mode.split(":", 1)[1], rect)
+                    self.edit_status.setText("Zone proposed. Review it in Calibration / Replay before saving.")
+                    self.edit_mode = None
+                    self.preview.pending_corner = None
+                    self.preview.update()
+                    return
+                elif self.edit_mode == "roi":
                     scene = replace(self.settings.scene, roi=rect)
                 else:
                     scene = replace(self.settings.scene, exclusions=self.settings.scene.exclusions + (rect,))
@@ -399,21 +494,32 @@ class Dashboard(QMainWindow):
         self.preview.update()
 
     def set_scene(self, scene: SceneConfig) -> None:
+        if self.tools.player is not None:
+            self.edit_status.setText("Return to live view before changing camera ROI or masks.")
+            return
         self.settings = replace(self.settings, scene=scene)
         self.preview.scene = scene
         self.preview.tracks = []
         self.tracker = PersonTracker()
         self.last_pose_timestamp = -1
+        self._pose_inputs.clear()
         if self.pose is not None:
             self.pose.set_scene(scene)
+        self.tools.scene_changed()
         self.preview.update()
 
     def full_roi(self) -> None:
+        if self.tools.player is not None:
+            self.edit_status.setText("Return to live view before changing camera ROI or masks.")
+            return
         self.cancel_edit()
         self.set_scene(replace(self.settings.scene, roi=Rect(0, 0, 1, 1)))
         self.edit_status.setText("Full frame ROI applied; existing exclusions retained.")
 
     def undo_mask(self) -> None:
+        if self.tools.player is not None:
+            self.edit_status.setText("Return to live view before changing camera ROI or masks.")
+            return
         self.cancel_edit()
         self.set_scene(replace(self.settings.scene, exclusions=self.settings.scene.exclusions[:-1]))
         self.edit_status.setText("Last exclusion removed. Review the preview.")
@@ -444,9 +550,13 @@ class Dashboard(QMainWindow):
             self.settings_status.setText(f"Settings were not saved: {error}")
 
     def refresh(self) -> None:
+        self.tools.tick()
+        if self.tools.render_replay():
+            return
         if self.capture is None:
             return
         metrics = self.capture.snapshot()
+        self.tools.show_zones()
         age = "no frames" if metrics.frame_age is None else f"{metrics.frame_age:.2f}s old"
         self.health.setText(
             f"Camera: {metrics.state} • {metrics.detail}\n"
@@ -467,7 +577,11 @@ class Dashboard(QMainWindow):
             self.last_sequence = packet.sequence
             self.preview.set_frame(packet.image)
             if self.pose is not None:
-                self.pose.submit(packet.image, int(packet.captured_at * 1000))
+                self._model_timestamp = max(int(packet.captured_at * 1000), self._model_timestamp + 1)
+                if self.pose.submit(packet.image, self._model_timestamp):
+                    self._pose_inputs[self._model_timestamp] = (packet.sequence, packet.captured_at)
+                    while len(self._pose_inputs) > 256:
+                        self._pose_inputs.pop(next(iter(self._pose_inputs)))
         if self.pose is not None:
             result = self.pose.latest_result
             stats = self.pose.stats
@@ -479,6 +593,11 @@ class Dashboard(QMainWindow):
                 else:
                     try:
                         self.preview.tracks = self.tracker.update(result.observations, self.last_pose_seen_at)
+                        source = self._pose_inputs.get(result.timestamp_ms)
+                        # Unmatched native results may display, but must never be
+                        # recorded with an invented frame index or source time.
+                        if source is not None:
+                            self.tools.observe(result, self.preview.tracks, *source)
                     except ValueError:
                         self.preview.tracks = []
             error = self.pose.error
@@ -488,6 +607,11 @@ class Dashboard(QMainWindow):
                                      f"submitted {stats.submitted} / completed {stats.completed} / skipped {stats.dropped}")
         if metrics.state != "LIVE" or time.monotonic() - self.last_pose_seen_at > 1.0:
             self.preview.tracks = []
+            self.tools.last_live_tracks = []
+            self.tools.trajectory.clear()
+            self.preview.trajectory_segments = {}
+            if self.tools.state in {"delay", "capturing"}:
+                self.tools.stop_capture("Camera or pose observations unavailable; uncertainty remains visible.")
         self.preview.update()
 
     def shutdown(self) -> None:

@@ -284,6 +284,15 @@ False second-person detection is safety-critical because it can suppress a real 
 
 Calibration must never ask Tyler to recreate an airway-obstructing position.
 
+Tyler clarified on October 5, 2026 that his safe intentional head-down position
+can extend slightly farther on other days than during a particular session.
+Allow a small, visually reviewed amount of day-to-day variation in the
+intentional-lean proposal; do not automatically adopt today's deepest sample as
+a final soft/hard threshold. The margin and safety-critical boundaries require
+Tyler's review. The approved 30-second ordinary-lean grace period is unchanged;
+it does not establish that an unrecognized severe position is safe. Milestone 1
+implements review tooling only, with no danger classification or grace timer.
+
 ### Caregiver participation timing
 
 Tyler requested on October 5, 2026 that actual caregiver involvement be deferred

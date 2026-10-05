@@ -1,6 +1,6 @@
 import pytest
 
-from tyler_safety_monitor.tracking import PersonTracker, PoseObservation
+from tyler_safety_monitor.tracking import PersonTracker, PoseObservation, Track
 
 
 def observation(x, y=0.7, confidence=0.9):
@@ -73,3 +73,44 @@ def test_bad_timestamp_does_not_mutate_identity_or_continuity(timestamp):
 def test_invalid_observation_is_rejected(head, confidence):
     with pytest.raises(ValueError):
         PoseObservation(head, None, confidence)
+
+
+def test_optional_landmark_scores_preserve_legacy_positional_construction():
+    landmarks = ((.2, .7, 0),)
+    legacy_observation = PoseObservation((.2, .7), None, .9, landmarks)
+    legacy_track = Track(1, (.2, .7), None, .9, 1, 1, landmarks, "custom label", True)
+    assert legacy_observation.landmark_scores == ()
+    assert legacy_track.landmark_scores == ()
+    assert legacy_track.label == "custom label"
+    assert legacy_track.identity_uncertain
+
+
+def test_tracker_retains_invisible_landmark_scores_and_updates_them():
+    tracker = PersonTracker()
+    landmarks = ((.2, .7, 0), (.2, .8, 0))
+    first = PoseObservation((.2, .7), None, .9, landmarks, ((.9, .8), (0, .1)))
+    tracked = tracker.update([first], 1)[0]
+    assert tracked.landmarks == landmarks
+    assert tracked.landmark_scores == first.landmark_scores
+    second = PoseObservation((.2, .7), None, .9, landmarks, ((.8, .7), (.1, .2)))
+    updated = tracker.update([second], 2)[0]
+    assert updated.id == tracked.id
+    assert updated.landmark_scores == second.landmark_scores
+
+
+@pytest.mark.parametrize("scores", [
+    ((.9,),), ((.9, .8, .7),), ((float("nan"), .8),),
+    ((float("inf"), .8),), ((-.1, .8),), ((.9, 1.1),),
+    ((.9, .8), (.7, .6)),
+])
+def test_malformed_landmark_score_metadata_is_rejected(scores):
+    landmarks = ((.2, .7, 0),)
+    with pytest.raises(ValueError):
+        PoseObservation((.2, .7), None, .9, landmarks, scores)
+    with pytest.raises(ValueError):
+        Track(1, (.2, .7), None, .9, 1, 1, landmarks, landmark_scores=scores)
+
+
+def test_scores_cannot_exist_without_landmarks():
+    with pytest.raises(ValueError):
+        PoseObservation((.2, .7), None, .9, landmark_scores=((.9, .9),))

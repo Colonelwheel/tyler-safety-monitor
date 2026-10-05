@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "tyler-safety-monitor"
 version = "0.0.1"
-description = "Local Windows camera feasibility dashboard; emergency messaging disabled"
+description = "Local Windows observation, calibration and replay dashboard; emergency messaging disabled"
 requires-python = ">=3.12,<3.13"
 dependencies = [
   "mediapipe==1.0.1",

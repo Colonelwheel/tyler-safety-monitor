@@ -16,7 +16,11 @@ from PySide6.QtWidgets import QApplication, QPushButton, QSystemTrayIcon
 from tyler_safety_monitor import dashboard as ui
 from tyler_safety_monitor.scene import Rect, SceneConfig
 from tyler_safety_monitor.settings import AppSettings
-from tyler_safety_monitor.tracking import PoseObservation
+from tyler_safety_monitor.camera import CameraSettings
+from tyler_safety_monitor.tracking import PoseObservation, Track
+from tyler_safety_monitor.calibration import CalibrationProfile, scene_digest
+from tyler_safety_monitor import calibration_ui as tooling
+from tyler_safety_monitor.replay import FeatureSample, FeatureSequence, load_sequence
 
 
 class FakeSound:
@@ -67,6 +71,7 @@ class FakeTray:
 
 class FakeCapture:
     def __init__(self):
+        self.settings = CameraSettings()
         self.stopped = False
         self.started = False
         self.reads = 0
@@ -150,6 +155,250 @@ def test_two_separate_taps_edit_roi_and_mask_with_letterbox_mapping(window):
     mask = window.settings.scene.exclusions[0]
     assert (mask.x, mask.y, mask.width, mask.height) == pytest.approx((0.5, 0.2, 0.2, 0.2), abs=0.003)
     assert window.settings.scene.roi == roi
+
+
+def ready_tools(window, monkeypatch):
+    """Synthetic capture, with no camera/model access or user runtime writes."""
+    clock = SimpleNamespace(value=100.0)
+    window.tools.clock = lambda: clock.value
+    window.capture = FakeCapture()
+    window.pose = SimpleNamespace(ready=True, close=lambda: None, is_alive=False, set_scene=lambda scene: None)
+    window.preview.set_frame(window.capture.packet.image)
+    provenance = {"created_at": "2026-10-05T12:00:00+00:00", "scene_sha256": scene_digest(window.settings.scene),
+                  "model": {"name": "synthetic.task", "sha256": "0" * 64},
+                  "camera": {"source": "camera 0 / dshow", "frame_width": 160, "frame_height": 90},
+                  "dependencies": {"python": "3.12.8"}}
+    monkeypatch.setattr(tooling, "build_provenance", lambda *args: provenance)
+    window.tools.last_live_tracks = [Track(1, (0.5, 0.5), None, 0.9, 100, 100)]
+    window.tools.candidate.addItem("P1", 1)
+    window.tools.candidate.setCurrentIndex(1)
+    window.tools.scene_review.setChecked(True)
+    window.tools.confirm = lambda *args: True
+    return window.tools, clock, provenance
+
+
+def test_capture_requires_current_candidate_scene_review_and_explicit_consent(window, monkeypatch):
+    tools, _, _ = ready_tools(window, monkeypatch)
+    tools.scene_review.setChecked(False)
+    tools.request_capture()
+    assert tools.state == "idle"
+    tools.scene_review.setChecked(True)
+    tools.confirm = lambda *args: False
+    tools.request_capture()
+    assert tools.state == "idle" and tools.samples == []
+    tools.confirm = lambda *args: True
+    window.begin_edit("mask")
+    tools.request_capture()
+    assert tools.state == "delay" and window.edit_mode is None
+    assert tools.samples == []
+
+
+def test_capture_delay_stop_and_limit_preserve_original_timestamps(window, monkeypatch):
+    tools, clock, _ = ready_tools(window, monkeypatch)
+    tools.request_capture()
+    obs = PoseObservation((0.5, 0.5), None, 0.9)
+    result = SimpleNamespace(timestamp_ms=105010, observations=(obs,))
+    track = Track(1, obs.head, None, .9, 105, 105)
+    tools.observe(result, [track], 1, 104.98)
+    assert tools.samples == []
+    clock.value = 105
+    tools.tick()
+    assert tools.state == "capturing"
+    tools.observe(result, [track], 2, 104.99)
+    assert tools.samples == []  # Late inference captured during delay rejected.
+    tools.observe(result, [track], 3, 105.01)
+    assert tools.samples[0].timestamp == 105.01
+    assert tools.samples[0].inference_timestamp_ms == 105010
+    assert tools.samples[0].capture_step == "ordinary"
+    assert "CAPTURING" in window.capture_banner.text()
+    clock.value = 120
+    tools.tick()
+    assert tools.state == "review" and len(tools.samples) == 1
+    assert tools.step.isEnabled()
+
+
+def test_native_minimize_and_hide_end_collection_but_keep_processing(window, monkeypatch, application):
+    tools, _, _ = ready_tools(window, monkeypatch)
+    window.show()
+    tools.request_capture()
+    window.showMinimized()
+    application.processEvents()
+    assert tools.state == "review"
+    assert window.capture is not None and window.timer.isActive()
+    window.showNormal()
+    tools.request_capture()
+    window.hide()
+    application.processEvents()
+    assert tools.state == "review" and window.capture is not None
+
+
+def test_scene_change_retains_capture_but_hides_incompatible_zones(window, monkeypatch):
+    tools, _, provenance = ready_tools(window, monkeypatch)
+    tools.request_capture()
+    tools.samples = [FeatureSample(100, 1, (PoseObservation((.5, .5), None, .9),))]
+    tools.profile = CalibrationProfile(window.settings.scene, provenance, {"safe": Rect(.4, .4, .2, .2)})
+    tools.show_zones()
+    assert window.preview.zones
+    window.set_scene(SceneConfig(Rect(.1, .1, .8, .8)))
+    assert tools.state == "review" and len(tools.samples) == 1
+    assert not tools.scene_review.isChecked() and window.preview.zones == {}
+
+
+def test_margin_invalidates_lean_review_without_expanding_danger_zone(window, monkeypatch):
+    tools, _, provenance = ready_tools(window, monkeypatch)
+    lean, hard = Rect(.4, .4, .2, .2), Rect(.3, .8, .3, .1)
+    tools.capture_provenance = provenance
+    tools.profile = CalibrationProfile(window.settings.scene, provenance,
+        {"intentional_lean": lean, "hard_boundary": hard}, ("intentional_lean", "hard_boundary"))
+    tools.points["intentional_lean"] = [(.4, .4), (.6, .6)]
+    tools.margin.setValue(.5)
+    assert tools.profile.lean_margin == .005
+    assert "intentional_lean" not in tools.profile.reviewed_zones
+    assert tools.profile.zones["hard_boundary"] == hard
+    assert "hard_boundary" in tools.profile.reviewed_zones
+    assert tools.profile.zones["intentional_lean"].height > lean.height
+    tools.zone.setCurrentIndex(tools.zone.findData("hard_boundary"))
+    tools.propose()
+    assert "no thresholds" in tools.status.text()
+
+
+def test_new_session_cancels_pending_zone_edit_and_never_deletes_saved_files(window, monkeypatch):
+    tools, _, provenance = ready_tools(window, monkeypatch)
+    tools.capture_provenance = provenance
+    tools.profile = CalibrationProfile(window.settings.scene, provenance)
+    window.begin_edit("zone:safe")
+    tools.new_session()
+    assert window.edit_mode is None and tools.profile is None
+    tap_normalized(window.preview, .2, .2)
+    tap_normalized(window.preview, .8, .8)
+    assert tools.profile is None
+
+
+def test_switching_candidate_or_camera_requires_new_calibration_session(window, monkeypatch):
+    tools, _, _ = ready_tools(window, monkeypatch)
+    tools.request_capture()
+    tools.stop_capture()
+    tools.samples = [FeatureSample(100, 1, (PoseObservation((.5, .5), None, .9),))]
+    tools.candidate.addItem("P2", 2)
+    tools.candidate.setCurrentIndex(2)
+    tools.last_live_tracks = [Track(2, (.6, .5), None, .9, 100, 100)]
+    tools.request_capture()
+    assert tools.state == "review" and "different person candidate" in tools.status.text()
+    tools.candidate.setCurrentIndex(1)
+    tools.last_live_tracks = [Track(1, (.5, .5), None, .9, 100, 100)]
+    window._capture_generation += 1
+    tools.request_capture()
+    assert tools.state == "review" and "camera session changed" in tools.status.text()
+
+
+def test_real_feature_save_requires_confirmation_and_preserves_earlier_files(window, monkeypatch, tmp_path):
+    tools, _, provenance = ready_tools(window, monkeypatch)
+    tools.request_capture()
+    tools.stop_capture()
+    tools.samples = [FeatureSample(100, 1, (PoseObservation((.5, .5), None, .9),), 100000, "ordinary")]
+    tools.steps_taken = ["ordinary"]
+    old = tmp_path / "unrelated.txt"
+    old.write_text("preserve")
+    from tyler_safety_monitor import calibration, replay
+    monkeypatch.setattr(tooling, "save_profile", lambda p: calibration.save_profile(p, tmp_path / "profiles"))
+    monkeypatch.setattr(tooling, "save_sequence", lambda s: replay.save_sequence(s, directory=tmp_path / "features"))
+    tools.confirm = lambda *args: False
+    tools.request_save()
+    assert list(tmp_path.iterdir()) == [old]
+    tools.confirm = lambda *args: True
+    tools.request_save()
+    first = next((tmp_path / "profiles").glob("*.json"))
+    before = first.read_bytes()
+    tools.request_save()
+    assert first.read_bytes() == before
+    assert len(list((tmp_path / "profiles").glob("*.json"))) == 2
+    assert len(list((tmp_path / "features").glob("*.json"))) == 1
+    seq = load_sequence(next((tmp_path / "features").glob("*.json")))
+    assert seq.samples[0].capture_step == "ordinary" and seq.samples[0].timestamp == 100
+    assert old.read_text() == "preserve"
+
+
+def test_replay_uses_its_clock_original_aspect_ratio_and_camera_stays_paused(window):
+    clock = SimpleNamespace(value=2000.0)
+    window.tools.clock = lambda: clock.value
+    seq = FeatureSequence(SceneConfig(), {"source_kind": "synthetic", "frame_width": 640, "frame_height": 480}, (
+        FeatureSample(10, 1, (PoseObservation((.5, .5), None, .9),)),
+        FeatureSample(10.2, 2, ()),
+        FeatureSample(10.3, 3, (PoseObservation((.51, .51), None, .9),)),
+    ))
+    tools = window.tools
+    tools.install_replay(seq)
+    tools.toggle_play()
+    tools.render_replay()
+    assert len(window.preview.tracks) == 1 and window.preview.frame_ratio == 4 / 3
+    clock.value += .31
+    tools.render_replay()
+    paths = window.preview.trajectory_segments
+    assert len(paths[1]) == 2  # Missing batch visibly breaks the path.
+    tools.rewind()
+    assert window.preview.tracks == [] and window.preview.trajectory_segments == {}
+    tools.leave_replay()
+    assert window.capture is None and tools.player is None
+
+
+def test_profile_zones_hidden_when_model_dimensions_or_camera_differ(window, monkeypatch):
+    tools, _, provenance = ready_tools(window, monkeypatch)
+    tools.capture_provenance = provenance
+    tools.profile = CalibrationProfile(window.settings.scene, provenance, {"safe": Rect(.4, .4, .2, .2)})
+    tools.show_zones()
+    assert window.preview.zones
+    window.capture.metrics.actual_width = 640
+    tools.show_zones()
+    assert window.preview.zones == {}
+    tools.review_zone()
+    assert "unverifiable" in tools.status.text()
+
+
+def test_tools_controls_are_one_pointer_and_global_volume_stop_remain_visible(window, application):
+    window.resize(1400, 900)
+    window.show()
+    window.tabs.setCurrentIndex(1)
+    application.processEvents()
+    assert window.capture_stop.isVisible()
+    for control in window.tools.findChildren(QPushButton):
+        assert control.accessibleName() == control.text()
+        assert control.minimumHeight() >= 60
+    for text in ("Decrease", "Increase", "Test Sound"):
+        controls = [c for c in window.findChildren(QPushButton) if c.text() == text]
+        assert len(controls) == 1 and controls[0].isVisible()
+
+
+def test_profile_provenance_uses_owned_camera_instead_of_next_launch_settings(window, monkeypatch):
+    tools, _, provenance = ready_tools(window, monkeypatch)
+    source = []
+    monkeypatch.setattr(tooling, "build_provenance", lambda scene, model, camera, *args: source.append(camera) or provenance)
+    window.camera_index.setValue(1)
+    window.backend.setCurrentIndex(1)
+    window.settings = window.read_controls()  # Save Settings does not reopen camera.
+    tools.request_capture()
+    assert source == ["camera 0 / dshow"]
+    tools.profile = CalibrationProfile(window.settings.scene, provenance, {"safe": Rect(.4, .4, .2, .2)})
+    tools.show_zones()
+    assert window.preview.zones
+    window.capture.settings = CameraSettings(index=1)
+    tools.show_zones()
+    assert window.preview.zones == {}
+
+
+def test_camera_pause_and_fault_clear_reviewed_zone_overlays(window, monkeypatch):
+    tools, _, provenance = ready_tools(window, monkeypatch)
+    tools.capture_provenance = provenance
+    tools.profile = CalibrationProfile(window.settings.scene, provenance,
+        {"safe": Rect(.4, .4, .2, .2)}, ("safe",))
+    tools.show_zones()
+    assert window.preview.zones and window.preview.reviewed_zones
+    window.capture.metrics.state = "FAULT"
+    tools.show_zones()
+    assert window.preview.zones == {} and window.preview.reviewed_zones == set()
+    window.capture.metrics.state = "LIVE"
+    tools.show_zones()
+    window.pause_camera()
+    assert window.preview.zones == {} and window.preview.reviewed_zones == set()
 
 
 def test_volume_controls_clamp_only_app_level_and_manual_test_uses_selection(window):

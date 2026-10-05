@@ -10,7 +10,7 @@ import sys
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Milestone 0 camera dashboard; no emergency alerts")
+    parser = argparse.ArgumentParser(description="Calibration/replay observation dashboard; no emergency alerts")
     parser.add_argument("--show", action="store_true", help="open the dashboard immediately")
     parser.add_argument("--model", type=Path, help="local pose model; never downloaded at startup")
     parser.add_argument("--no-camera", action="store_true", help="open controls without accessing camera")

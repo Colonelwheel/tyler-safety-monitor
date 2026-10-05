@@ -11,6 +11,7 @@ dist/
 .env
 .env.*
 *.log
+*.jsonl
 *.db
 *.db-*
 *.sqlite*
@@ -32,6 +33,7 @@ dist/
 local/
 runtime/
 calibration/
+replays/
 incidents/
 models/
 config.local.json

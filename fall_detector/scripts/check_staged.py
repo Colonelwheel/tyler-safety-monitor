@@ -16,7 +16,7 @@ PRIVATE_SUFFIXES = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".bmp", ".tif", ".
                     ".mp4", ".avi", ".mkv", ".mov", ".wav", ".mp3", ".db", ".sqlite",
                     ".sqlite3", ".log", ".task", ".tflite", ".onnx", ".pem", ".key", ".pfx"}
 PRIVATE_PARTS = {".venv", "__pycache__", "calibration", "incidents", "events", "models",
-                 "logs", "database", "runtime", "local", ".pytest_cache", "build", "dist"}
+                 "logs", "database", "runtime", "local", "replays", ".pytest_cache", "build", "dist"}
 PATTERNS = (
     ("credential identifier", re.compile(r"\b(?:AC|SK)[0-9a-fA-F]{32}\b")),
     ("private key", re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----")),
@@ -35,6 +35,8 @@ def issues_for(path: str, content: bytes) -> list[str]:
         issues.append("environment file")
     if parsed.suffix.lower() == ".json" and parsed.name != "config.example.json":
         issues.append("nonexample runtime/configuration JSON")
+    if parsed.suffix.lower() == ".jsonl":
+        issues.append("runtime feature sequence JSONL")
     if len(content) > 1024 * 1024 or b"\0" in content:
         issues.append("binary or oversized artifact requires separate review")
         return issues

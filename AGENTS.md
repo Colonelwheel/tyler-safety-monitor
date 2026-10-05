@@ -10,6 +10,11 @@ Read every project-authored Markdown document before implementation changes. Tre
 - Tyler authorized Milestone 0 implementation on October 4, 2026, including an
   isolated dependency environment, camera access without saving imagery, and new
   local runtime files. This does not authorize later milestones.
+- Tyler approved Milestone 1 tooling/source/documentation on October 5, 2026,
+  with synthetic verification. Actual personalized collection and saving imagery
+  were not authorized by that implementation approval. Feature capture and saves
+  require the visible, separate user confirmations; this milestone never saves
+  camera imagery. Milestone 2 still needs approval.
 - **Choose sensible, self-describing commit messages for this project. Do not ask
   Tyler for commit wording.** Tyler approved this ongoing preference on October 4,
   2026; it supersedes earlier instructions in the blueprint and handoff to agree

@@ -78,15 +78,22 @@ def observations_from_result(result, scene: SceneConfig, roi_pixels,
                  (landmarks[11].y + landmarks[12].y) / 2),
                 roi_pixels, frame_width, frame_height)
         mapped = []
+        scores = []
         for point in landmarks:
             x, y = scene.map_point((point.x, point.y), roi_pixels,
                                    frame_width, frame_height)
             mapped.append((x, y, point.z * roi_pixels[2] / frame_width))
+            # Unavailable metadata is represented as zero visibility/presence;
+            # this never promotes an invisible landmark into a visible head.
+            pair = tuple(getattr(point, name, None) for name in ("visibility", "presence"))
+            scores.append(tuple(value if value is not None and math.isfinite(value) else 0.0
+                                for value in pair))
         confidence = sum(min(landmarks[i].visibility, landmarks[i].presence)
                          for i in face) / len(face)
         observations.append(PoseObservation(head=head, shoulders=shoulders,
                                             confidence=confidence,
-                                            landmarks=tuple(mapped)))
+                                            landmarks=tuple(mapped),
+                                            landmark_scores=tuple(scores)))
     return tuple(observations)
 
 

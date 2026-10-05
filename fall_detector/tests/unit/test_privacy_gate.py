@@ -11,7 +11,8 @@ spec.loader.exec_module(gate)
 def test_private_media_environment_and_runtime_configuration_are_blocked():
     for path in ("fall_detector/sample.jpg", "fall_detector/.env",
                  "fall_detector/config.local.json", "fall_detector/calibration/profile.txt",
-                 "fall_detector/models/model.task", "fall_detector/events/event.mp4"):
+                 "fall_detector/models/model.task", "fall_detector/events/event.mp4",
+                 "fall_detector/replays/features.txt", "fall_detector/features.jsonl"):
         assert gate.issues_for(path, b"synthetic")
 
 

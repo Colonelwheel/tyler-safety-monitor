@@ -26,6 +26,26 @@ def test_crop_coordinates_and_head_only_survive_missing_shoulders():
     assert observations[0].shoulders is None
     assert observations[0].landmarks[0] == pytest.approx((.5, .65, .12))
     assert observations[0].confidence == pytest.approx(.9)
+    assert len(observations[0].landmark_scores) == 33
+    assert observations[0].landmark_scores[11] == (.1, .9)
+    assert observations[0].landmark_scores[12] == (.1, .9)
+    assert observations[0].landmark_scores[0] == (.9, .9)
+
+
+def test_unavailable_scores_are_retained_as_zero_without_changing_visible_head():
+    result = result_at()
+    result.pose_landmarks[0][0].visibility = None
+    result.pose_landmarks[0][0].presence = float("nan")
+    result.pose_landmarks[0][11].visibility = float("inf")
+    result.pose_landmarks[0][12].presence = None
+    observation = observations_from_result(result, SceneConfig(), (0, 0, 100, 100), 100, 100)[0]
+    assert observation.head == (.5, .5)
+    assert observation.confidence == pytest.approx(.9)
+    assert observation.shoulders is None
+    assert len(observation.landmarks) == 33
+    assert observation.landmark_scores[0] == (0, 0)
+    assert observation.landmark_scores[11] == (0, .9)
+    assert observation.landmark_scores[12] == (.9, 0)
 
 
 def test_visible_face_landmark_fallback():
