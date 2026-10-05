@@ -88,7 +88,7 @@ The application is an assistive backup. It is not a medical device, professional
 - Provide a large one-finger-friendly alert-volume control with direct decrease/increase actions and **Test Sound**.
 - Ordinary fall warnings and status sounds must respect the manually selected alert volume and must not change Windows system volume automatically.
 - A choking trigger normally overrides the selected volume: temporarily unmute the active Windows output and force both system and application alert volume to maximum, then restore the previous volume and mute state when the incident is resolved.
-- Caregiver presence has higher priority than every alarm type: immediately stop application speech/sounds and mute the active Windows output, preserving its prior volume and mute state for later restoration.
+- Caregiver presence has higher priority than every alarm type: immediately stop application speech/sounds and mute the active Windows output, preserving its prior volume and mute state until caregiver departure is reliably detected.
 - A manual choking trigger must remain available in every mode, including caregiver mode.
 - Voice recognition is secondary: useful when Tyler can speak, but not part of the minimum automatic safety path.
 
@@ -183,8 +183,8 @@ The state machine must be explicit and independently testable. UI labels may be 
 
 5. **Return**
    - Returning with a caregiver enters `CAREGIVER_PRESENT`.
+   - Restore the preserved Windows volume/mute state and selected application alert volume as soon as caregiver departure is reliably detected, regardless of whether monitoring is armed, rearming, away, in night mode, or in another state.
    - After the caregiver leaves, require Tyler to be visible in a calibrated safe position for 30 continuous seconds before entering `ARMED`.
-   - Restore the preserved Windows volume/mute state and selected application alert volume only after the 30-second rearm succeeds.
 
 6. **Restart recovery**
    - Persist the last deliberate mode and active-incident metadata atomically.
@@ -637,7 +637,7 @@ Every case must be tested in ordinary and darkest lighting where relevant.
 
 - caregiver enters normally and partially;
 - caregiver arrival stops application audio, mutes the active Windows output, and updates the visual state without producing any sound;
-- the prior Windows and application volume state returns only after the caregiver leaves and 30-second safe rearming completes;
+- the prior Windows and application volume state returns as soon as caregiver departure is reliably detected, independently of monitoring state or rearming;
 - caregiver obstructs the camera;
 - caregiver assists and remains in frame;
 - caregiver leaves while Tyler remains safe;
