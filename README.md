@@ -1,8 +1,17 @@
 # Tyler Safety Monitor website
 
-This repository contains the public informational and SMS-consent website for **Tyler Safety Monitor**, a personal, non-commercial safety alert project.
+This repository contains the public informational and SMS-consent website and the planned local Windows fall-detector application for **Tyler Safety Monitor**, a personal, non-commercial safety alert project.
 
 The site uses plain HTML and CSS. It has no build step, analytics, trackers, cookies added by the project, database, or JavaScript.
+
+## Fall Detector planning
+
+- `PROJECT_ROADMAP.md` — durable project status and staged roadmap
+- `FALL_DETECTOR_BLUEPRINT.md` — approved safety, accessibility, architecture, and validation requirements
+- `NEXT_CHAT_HANDOFF.md` — ready-to-use prompt for the first implementation task
+- `fall_detector/` — reserved home for the Windows application
+
+The application is not implemented yet. Runtime photographs, recordings, logs, databases, credentials, phone numbers, and caregiver information must never be committed.
 
 ## Pages
 

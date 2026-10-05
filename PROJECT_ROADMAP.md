@@ -16,7 +16,7 @@ This project is an assistive backup, not a medical device, professional monitori
 
 ## Current project status
 
-Status recorded: September 9, 2026.
+Status updated: October 4, 2026.
 
 - The public informational and SMS-consent website is complete and published through GitHub Pages.
 - Homepage: <https://colonelwheel.github.io/tyler-safety-monitor/>
@@ -26,8 +26,10 @@ Status recorded: September 9, 2026.
 - Public project contact: <tyguy9510@hotmail.com>
 - The real caregiver completed the Google SMS consent form.
 - The existing Twilio A2P campaign was corrected and resubmitted rather than creating a duplicate campaign.
-- The Twilio campaign is currently under review.
+- Twilio approved the A2P campaign on September 10, 2026.
+- A Twilio number is assigned to the approved campaign; real test messaging is not yet complete.
 - The local Windows camera-monitoring program has not yet been implemented.
+- The implementation requirements are now defined in `FALL_DETECTOR_BLUEPRINT.md`.
 
 Never commit caregiver details, phone numbers, consent-form responses, Twilio credentials, Pushover credentials, or other secrets to this repository.
 
@@ -58,13 +60,13 @@ Alert consented caregiver if not canceled
 Optional later escalation if explicitly configured
 ```
 
-## Recommended first version
+## Confirmed first version
 
-The first useful version should stay small enough to test safely and understand. Its proposed scope is:
+The first useful version should stay small enough to test safely and understand. The detailed requirements and implementation stages are in `FALL_DETECTOR_BLUEPRINT.md`. Its confirmed scope includes:
 
 - Run locally on Windows in Python.
 - Use OpenCV for webcam capture.
-- Start with MediaPipe Pose or another suitable, maintained local pose/landmark library after verifying current compatibility.
+- Start by validating MediaPipe Pose or another suitable, maintained local pose/landmark library against the actual camera and darkest lighting.
 - Let Tyler select the camera and see a clear preview/status display.
 - Provide a guided calibration step for Tyler's expected head/torso position and safe area.
 - Observe more than one possible danger signal, such as:
@@ -74,29 +76,39 @@ The first useful version should stay small enough to test safely and understand.
   - unusually little movement after a suspicious movement.
 - Combine signals over time rather than sending an alert from a single imperfect frame.
 - Show a full-screen or very large alarm interface and speak a warning such as, “Possible fall detected. Say cancel or press cancel.”
-- Provide an adjustable countdown, initially proposed as 30 seconds.
+- Allow an ordinary forward lean for 30 seconds and then provide a 10-second countdown.
+- Use an 8-second countdown for a confidently detected severe collapse or manual possible-fall trigger.
+- Send the manual choking alert immediately without a countdown.
 - Offer at least one extremely easy cancel method; the exact methods must be chosen with Tyler.
 - Provide a manual panic trigger that bypasses fall-detection logic.
 - Send an SMS through Twilio to the consented caregiver if a warning is not canceled.
-- Keep a small local event log containing timestamps, system status, detected reason, cancellation, and alert outcome—but no camera image or video by default.
+- Repeat an unacknowledged alert every minute, up to ten messages total, stopping on recovery, caregiver presence, resolution, or any caregiver reply.
+- Keep a local event log and incident-only video beginning approximately 20 seconds before detection, limited to two minutes per incident and deleted after 30 days.
 - Include a test mode that never sends a real alert.
+- Start minimized, open to a live camera/tracking dashboard, and use an independent watchdog with actionable Windows notifications.
 
 Illustrative logic only—not final thresholds:
 
 ```text
-IF multiple observations suggest that Tyler left the safe position
-   OR a manual panic trigger is activated
-THEN show and speak a local warning
+IF an ordinary lean lasts 30 seconds
+THEN show and speak a 10-second warning
+
+IF a severe collapse is detected
+   OR the manual possible-fall trigger is activated
+THEN show and speak an 8-second warning
 
 IF the warning is not canceled before the configured countdown ends
 THEN send an alert to the configured, consented caregiver
+
+IF the manual choking trigger is activated
+THEN send the choking alert immediately
 ```
 
 ## Candidate features for later evaluation
 
 These ideas came from the original project discussion but are not yet approved requirements:
 
-- Voice cancellation such as “cancel” or “no, cancel.”
+- Additional voice cancellation phrases beyond the initial secondary voice control.
 - A VoiceAttack phrase such as “emergency.”
 - A single-key keyboard trigger.
 - A large browser or phone button.
@@ -107,18 +119,17 @@ These ideas came from the original project discussion but are not yet approved r
 - An explicitly opted-in snapshot attached to an alert.
 - An explicitly opted-in private live view.
 - Detection of a repeated distress gesture or spoken “help” command.
-- Automatic Windows startup and a watchdog that restarts failed components.
 - Multiple camera support.
-- Offline alarms and alternative alert behavior during an internet outage.
+- Additional offline alert channels beyond the planned Android USB/cellular fallback.
 
 Mouth-open or yelling detection should not be assumed reliable and should not be a first-version requirement without testing.
 
 ## Privacy and security requirements
 
 - Process live video locally by default.
-- Do not save images, audio, or video by default.
+- Save only approved incident media locally; do not continuously record.
 - Do not provide remote viewing by default.
-- Require Tyler's explicit approval before enabling snapshots, recordings, uploads, or live viewing.
+- Do not upload snapshots, recordings, or live video in version one.
 - Store configuration and logs locally with minimal personal information.
 - Keep secrets in a local environment/configuration mechanism excluded from Git.
 - Never put a real caregiver's private information or consent record in this public repository.
@@ -137,13 +148,9 @@ Mouth-open or yelling detection should not be assumed reliable and should not be
 
 ## Implementation stages
 
-### Stage 1 — Requirements and physical setup
+### Stage 1 — Requirements and physical setup (complete)
 
-- Confirm the camera model, location, angle, field of view, and lighting.
-- Describe Tyler's normal safe position or positions.
-- Choose accessible manual trigger and cancellation methods.
-- Choose the initial countdown duration and caregiver response flow.
-- Decide what should happen during camera or internet failure.
+- Requirements, camera, scene, accessibility controls, alert timing, caregiver flow, storage, and failure behavior are documented in `FALL_DETECTOR_BLUEPRINT.md`.
 
 ### Stage 2 — Offline observation prototype
 
@@ -182,24 +189,17 @@ Mouth-open or yelling detection should not be assumed reliable and should not be
 - Evaluate phone/Simplecontroller integration.
 - Consider snapshots or private live viewing only after a separate privacy decision.
 
-## Open decisions for Tyler
+## Decisions deferred until implementation or later phases
 
-These must be answered during the appropriate implementation stage, not guessed:
+These must not be guessed when their implementation stage arrives:
 
-1. Which camera will be used, and where will it point?
-2. Is the primary normal position a chair, bed, or more than one location?
-3. What visible change most strongly indicates that Tyler may have slipped or fallen?
-4. Which cancellation methods are physically easiest and most dependable?
-5. Which manual panic methods should be included first?
-6. Is 30 seconds an appropriate initial cancellation window?
-7. Should inactivity be considered, and if so, after how long and in what circumstances?
-8. Should caregiver alerts begin with Twilio SMS only?
-9. Should Pushover or Twilio voice calling be added later?
-10. Are snapshots ever acceptable, or should the system permanently avoid them?
-11. What should the system do if the internet is unavailable?
-12. Should the monitor start automatically with Windows?
+1. Exact calibrated soft and hard position boundaries after safe supervised capture.
+2. Final pose/head model after benchmarking the actual C920 footage.
+3. Exact voice phrases and recognition implementation.
+4. Whether seven days is the appropriate shadow-mode validation period.
+5. Detailed Android USB/cellular fallback design.
+6. Later escalation beyond SMS, including voice calls, additional contacts, professional monitoring, or emergency services.
 
 ## First task for the camera-program phase
 
-Before writing detection code, inspect this roadmap and the existing repository, then ask Tyler the smallest set of concrete questions needed for **Stage 1 — Requirements and physical setup**. Do not silently choose safety, accessibility, privacy, or alert-escalation behavior.
-
+Read `FALL_DETECTOR_BLUEPRINT.md` and `NEXT_CHAT_HANDOFF.md`, then begin **Milestone 0 — Foundation and camera feasibility**. Do not silently change approved safety, accessibility, privacy, or alert-escalation behavior.
