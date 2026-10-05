@@ -97,9 +97,12 @@ Supply optional `--exclude X Y WIDTH HEIGHT` and `--compare-roi X Y WIDTH HEIGHT
 with normalized full-frame coordinates. Room geometry remains local input.
 Do not redirect private media or operational logs into this public repository.
 Still images test landmark visibility and inference time; they do not establish
-movement tracking, caregiver entry, or dangerous-event detection. Caregiver
-entry samples are deferred at Tyler's request. No movement test is needed for
-Milestone 0, and no airway-obstructing posture should ever be requested.
+movement tracking, caregiver entry, or dangerous-event detection. Actual caregiver
+involvement is deferred until the latest practical development point, normally
+Milestone 6 supervised validation; see `AGENTS.md` and blueprint section 8 for
+earlier-dependency exceptions and required validation before live alerts. Assisted
+captures stay pending when assistance is unavailable. No movement test is needed
+for Milestone 0, and no airway-obstructing posture should ever be requested.
 
 ## Runtime data and scope
 

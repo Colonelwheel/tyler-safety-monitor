@@ -24,6 +24,18 @@ Read every project-authored Markdown document before implementation changes. Tre
   the finished project work. Tyler requested this standing rule on October 5,
   2026.
 
+## Caregiver participation schedule
+
+- Tyler requested on October 5, 2026 that actual caregiver involvement be deferred
+  until the latest practical development point, normally consolidated with
+  Milestone 6 supervised validation. Build tooling and simulated caregiver tests
+  first; do not repeatedly request caregiver samples during earlier milestones.
+- Keep caregiver behavior in its approved implementation milestones. If a concrete
+  dependency or safety requirement needs earlier participation, explain why and
+  agree on the smallest necessary session with Tyler. Assisted calibration steps
+  remain pending when assistance is unavailable; never substitute unsafe solo
+  movements. Complete required real caregiver validation before enabling live alerts.
+
 ## Preservation and scope
 
 - Leave the existing Python installations and their installed packages unchanged.

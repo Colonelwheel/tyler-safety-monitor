@@ -12,7 +12,7 @@ Updated: October 5, 2026.
 >
 > After implementation approval, prioritize a one-finger guided safe-calibration workflow, local calibration profiles, a replay harness for approved safe clips/feature sequences, and visualization of head trajectories, proposed zones, landmark confidence, and person-candidate tracks. Explain the capture sequence before asking me to perform movements. The earlier photos were ordinary photographs, not instructed leaning tests. Never ask me to recreate a dangerous airway-obstructing posture. Obtain explicit approval before saving camera imagery, including the destination and recording scope; use visible capture/start/stop controls and a delay where appropriate. Do not infer final soft/hard danger boundaries from the two photos or choose safety-critical thresholds without my review.
 >
-> Caregiver-entry samples and real simultaneous two-person validation are **deferred at my request**. Do not make them a prerequisite for building the calibration/replay foundation or ask me to provide them now. Label tracks as person candidates and identify the validation still pending. Keep all caregiver messaging disabled or simulated. Do not implement live fall alerts, choking behavior, caregiver audio switching, Twilio messaging, startup registration, or the independent watchdog in this milestone.
+> Actual caregiver involvement, including entry samples and real simultaneous two-person validation, is **deferred at my request until the latest practical development point**, normally consolidated with Milestone 6 supervised validation. Build tooling and synthetic/simulated tests first; do not make caregiver participation a prerequisite for the calibration/replay foundation or ask for those samples now. Keep assisted calibration steps pending when assistance is unavailable; never substitute unsafe solo movements. Explain any concrete dependency or safety reason for an earlier caregiver session and agree on its minimum scope with me. This changes participation timing, not approved caregiver behavior or the requirement to complete real caregiver validation before live alerts. Label tracks as person candidates and identify pending validation. Keep all caregiver messaging disabled or simulated. Do not implement live fall alerts, choking behavior, caregiver audio switching, Twilio messaging, startup registration, or the independent watchdog in this milestone.
 >
 > Preserve one-finger access and the dashboard's always-visible manual alert-volume decrease/increase and Test Sound controls. The approved later audio behavior remains: ordinary alarms use the selected volume; a choking trigger temporarily unmutes and forces maximum system/application output only without caregiver presence. Caregiver arrival has higher priority: stop app audio and mute the active Windows output, preserving prior settings. Restore those settings as soon as caregiver departure is reliably detected, regardless of monitoring or armed state. Do not redesign these rules without explaining concrete evidence for a conflict.
 >
@@ -94,8 +94,9 @@ true caregiver entry remains unvalidated. Model limitations are in
    coordinates, missing/invalid inputs, tracking gaps, and accessible controls.
    Real clips and personalized features stay outside Git.
 6. Documentation distinguishes implemented tooling from safe physical scenarios
-   not yet collected or validated. Caregiver samples remain deferred; no real
-   messaging or safety-state logic is enabled.
+   not yet collected or validated. Actual caregiver participation and assisted
+   captures remain deferred as described above; no real messaging or safety-state
+   logic is enabled.
 
 Blueprint sections 7–9, 11, and Milestone 1 govern calibration, visualization,
 and private-data handling. Stop at this milestone; later stages need approval.

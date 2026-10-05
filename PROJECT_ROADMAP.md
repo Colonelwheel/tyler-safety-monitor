@@ -16,7 +16,7 @@ This project is an assistive backup, not a medical device, professional monitori
 
 ## Current project status
 
-Status updated: October 4, 2026.
+Status updated: October 5, 2026.
 
 - The public informational and SMS-consent website is complete and published through GitHub Pages.
 - Homepage: <https://colonelwheel.github.io/tyler-safety-monitor/>
@@ -207,5 +207,7 @@ These must not be guessed when their implementation stage arrives:
 Read `FALL_DETECTOR_BLUEPRINT.md` and `NEXT_CHAT_HANDOFF.md`, then inspect and propose **Milestone 1 — Calibration and recorded-data harness**. Obtain approval before its source-code implementation or camera recording. Do not silently change approved safety, accessibility, privacy, or alert-escalation behavior.
 
 Milestone 0 implementation is now complete within the explicitly limited observation scope. Tyler deferred caregiver-entry samples; true simultaneous two-person tracking remains unvalidated. Do not proceed to Milestone 1 without approval for that new scope. The supplied lighting photographs were ordinary photographs, not instructed movement tests.
+
+On October 5, 2026, Tyler expanded that deferral to actual caregiver involvement throughout development: schedule it as late as practical, normally consolidating sessions with **Milestone 6 — Supervised validation**. Build tooling and simulated caregiver tests first while implementing caregiver behavior in its approved milestones. Leave assisted calibration pending rather than asking Tyler to perform unsafe solo movements. If a concrete dependency or safety requirement needs earlier participation, explain the reason and agree on the smallest necessary session. Required real caregiver calibration and validation must still be completed before live alerts are enabled; this scheduling preference does not remove acceptance gates.
 
 Tyler delegated this project's commit-message choices to the agent on October 4, 2026. Choose sensible messages without asking him for wording. Preserve his existing Python installations and packages; use only the detector's isolated environment. `AGENTS.md` records these ongoing project instructions.

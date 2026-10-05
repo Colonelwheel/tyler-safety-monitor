@@ -284,6 +284,21 @@ False second-person detection is safety-critical because it can suppress a real 
 
 Calibration must never ask Tyler to recreate an airway-obstructing position.
 
+### Caregiver participation timing
+
+Tyler requested on October 5, 2026 that actual caregiver involvement be deferred
+until the latest practical development point, normally consolidated with
+**Milestone 6 — Supervised validation**. Implement calibration tooling and
+synthetic/simulated caregiver tests first. Keep caregiver behavior in its approved
+implementation milestones; this scheduling change does not alter safety behavior.
+
+The sequence below describes required capture coverage, not a demand to collect
+every scenario in Milestone 1. Leave caregiver-assisted steps pending when
+assistance is unavailable; never replace them with unsafe solo movements. Explain
+any concrete dependency or safety requirement for earlier caregiver participation
+and agree on the smallest necessary session with Tyler. Required real caregiver
+calibration and validation must be complete before enabling live alerts.
+
 ### Guided capture sequence
 
 1. Confirm the camera is fixed and show the masked/excluded regions.
