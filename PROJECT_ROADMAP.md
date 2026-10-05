@@ -28,7 +28,7 @@ Status updated: October 4, 2026.
 - The existing Twilio A2P campaign was corrected and resubmitted rather than creating a duplicate campaign.
 - Twilio approved the A2P campaign on September 10, 2026.
 - A Twilio number is assigned to the approved campaign; real test messaging is not yet complete.
-- The local Windows camera-monitoring program has not yet been implemented.
+- Milestone 0 now provides an isolated Python 3.12 Windows tray/dashboard, memory-only C920 capture, ROI/exclusion editing, observational pose candidates, manual app-volume controls, and local benchmark tools. Emergency detection and caregiver messaging remain disabled. See `fall_detector/docs/MILESTONE_0.md` for measurements and deferred validation.
 - The implementation requirements are now defined in `FALL_DETECTOR_BLUEPRINT.md`.
 
 Never commit caregiver details, phone numbers, consent-form responses, Twilio credentials, Pushover credentials, or other secrets to this repository.
@@ -205,3 +205,7 @@ These must not be guessed when their implementation stage arrives:
 ## First task for the camera-program phase
 
 Read `FALL_DETECTOR_BLUEPRINT.md` and `NEXT_CHAT_HANDOFF.md`, then begin **Milestone 0 — Foundation and camera feasibility**. Do not silently change approved safety, accessibility, privacy, or alert-escalation behavior.
+
+Milestone 0 implementation is now complete within the explicitly limited observation scope. Tyler deferred caregiver-entry samples; true simultaneous two-person tracking remains unvalidated. Do not proceed to Milestone 1 without approval for that new scope. The supplied lighting photographs were ordinary photographs, not instructed movement tests.
+
+Tyler delegated this project's commit-message choices to the agent on October 4, 2026. Choose sensible messages without asking him for wording. Preserve his existing Python installations and packages; use only the detector's isolated environment. `AGENTS.md` records these ongoing project instructions.

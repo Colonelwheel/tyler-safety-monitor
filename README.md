@@ -11,7 +11,7 @@ The site uses plain HTML and CSS. It has no build step, analytics, trackers, coo
 - `NEXT_CHAT_HANDOFF.md` — ready-to-use prompt for the first implementation task
 - `fall_detector/` — reserved home for the Windows application
 
-The application is not implemented yet. Runtime photographs, recordings, logs, databases, credentials, phone numbers, and caregiver information must never be committed.
+Milestone 0 is implemented as an observation-only Windows tray/dashboard application. See [`fall_detector/README.md`](fall_detector/README.md) for the isolated launch instructions and measured feasibility limits. Emergency detection, caregiver audio switching, and real messaging are not implemented in this milestone. Runtime photographs, recordings, logs, databases, credentials, phone numbers, and caregiver information must never be committed.
 
 ## Pages
 

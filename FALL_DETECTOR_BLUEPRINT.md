@@ -542,7 +542,7 @@ fall_detector/
   docs/
 ```
 
-Implementation code does not yet exist. The structure above is the target, not authorization to create source files without first following the repository instructions and agreeing on the source-code commit message.
+The structure above is the target, not authorization to create source files without first following the repository instructions and obtaining approval for the implementation scope. Tyler authorized Milestone 0 on October 4, 2026 and delegated this project's commit-message choices to the implementing agent; do not ask him for commit wording.
 
 ## 14. Implementation milestones
 
