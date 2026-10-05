@@ -86,6 +86,8 @@ The first useful version should stay small enough to test safely and understand.
 - Keep a local event log and incident-only video beginning approximately 20 seconds before detection, limited to two minutes per incident and deleted after 30 days.
 - Include a test mode that never sends a real alert.
 - Start minimized, open to a live camera/tracking dashboard, and use an independent watchdog with actionable Windows notifications.
+- Provide a manually selected alert-volume control and **Test Sound**. Ordinary alerts respect that selection; only the choking trigger temporarily unmutes and forces maximum system/application volume before restoring prior settings.
+- Enter caregiver mode silently, with no tone or spoken announcement when another person arrives.
 
 Illustrative logic only—not final thresholds:
 

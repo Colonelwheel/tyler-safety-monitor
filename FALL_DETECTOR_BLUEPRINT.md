@@ -21,6 +21,7 @@ The application is an assistive backup. It is not a medical device, professional
 - Monitor only while Tyler is in active/day mode.
 - Remain minimized during ordinary operation.
 - Open to a dashboard with the live camera view, tracking overlays, status, and all relevant controls.
+- Provide a manually selected local alert volume with an accessible test control.
 - Detect ordinary forward leaning separately from a severe forward collapse.
 - Favor false-positive alerts over missed severe events.
 - Detect a caregiver as a second, independently tracked person.
@@ -84,6 +85,9 @@ The application is an assistive backup. It is not a medical device, professional
 - Full-screen warning screens must contain one dominant **Cancel Alert** control.
 - The ordinary dashboard may be minimized, but it must be recoverable from the system tray and Windows notifications.
 - Notifications should include appropriate buttons such as **Restart**, **Start Monitoring**, **Night Mode**, and **Open Status**.
+- Provide a large one-finger-friendly alert-volume control with direct decrease/increase actions and **Test Sound**.
+- Ordinary fall warnings and status sounds must respect the manually selected alert volume and must not change Windows system volume automatically.
+- A choking trigger is the sole exception: temporarily unmute the active Windows output and force both system and application alert volume to maximum, then restore the previous volume and mute state when the incident is resolved.
 - A manual choking trigger must remain available in every mode, including caregiver mode.
 - Voice recognition is secondary: useful when Tyler can speak, but not part of the minimum automatic safety path.
 
@@ -166,6 +170,7 @@ The state machine must be explicit and independently testable. UI labels may be 
    - Require two spatially separate, temporally stable human tracks for at least two seconds.
    - Cancel pending warnings and stop repeat SMS messages.
    - Enter `CAREGIVER_PRESENT`.
+   - Make caregiver arrival silent: update visual state only and do not play a tone or spoken announcement.
    - Manual emergency controls remain active.
 
 4. **Safe departure**
@@ -314,6 +319,7 @@ The opened dashboard should contain:
   - **Possible Fall**;
   - **I'm Choking — Send Now**;
   - **Restart Detector**;
+  - **Alert Volume** decrease/increase control and **Test Sound**;
   - **Test Alarm**;
   - **Test SMS**;
   - **Calibrate**;
@@ -327,9 +333,12 @@ The immediate choking control needs strong visual separation from test and confi
 - Appear above other ordinary windows.
 - Show the reason and remaining seconds in very large type.
 - Speak the warning and play a distinctive repeating sound.
+- Use the manually selected volume for ordinary and severe-fall warnings.
+- For a choking trigger only, temporarily unmute and force the active Windows output and application alert to maximum volume; restore the previous settings after resolution.
 - Provide one dominant **Cancel Alert** button.
 - Accept configured mouse, phone, keyboard, and voice cancellation inputs.
 - Allow automatic visual recovery and caregiver detection to cancel.
+- When caregiver detection cancels an alarm, stop audio immediately without playing an arrival or dismissal sound.
 
 ### Windows notifications
 
@@ -615,11 +624,15 @@ Every case must be tested in ordinary and darkest lighting where relevant.
 - recovery at early, middle, and final countdown points;
 - mouse, phone, voice, and visual recovery cancellation;
 - manual fall trigger and cancellation;
-- immediate choking trigger with no countdown.
+- immediate choking trigger with no countdown;
+- ordinary alarms respect the selected alert volume without changing Windows volume;
+- choking temporarily unmutes and reaches maximum volume, then restores the previous Windows and application settings;
+- the volume control and **Test Sound** are usable with one pointer/tap workflow.
 
 ### Caregiver and away behavior
 
 - caregiver enters normally and partially;
+- caregiver arrival updates the visual state without producing any sound;
 - caregiver obstructs the camera;
 - caregiver assists and remains in frame;
 - caregiver leaves while Tyler remains safe;
