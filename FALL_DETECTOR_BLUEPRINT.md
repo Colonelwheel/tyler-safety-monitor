@@ -87,7 +87,8 @@ The application is an assistive backup. It is not a medical device, professional
 - Notifications should include appropriate buttons such as **Restart**, **Start Monitoring**, **Night Mode**, and **Open Status**.
 - Provide a large one-finger-friendly alert-volume control with direct decrease/increase actions and **Test Sound**.
 - Ordinary fall warnings and status sounds must respect the manually selected alert volume and must not change Windows system volume automatically.
-- A choking trigger is the sole exception: temporarily unmute the active Windows output and force both system and application alert volume to maximum, then restore the previous volume and mute state when the incident is resolved.
+- A choking trigger normally overrides the selected volume: temporarily unmute the active Windows output and force both system and application alert volume to maximum, then restore the previous volume and mute state when the incident is resolved.
+- Caregiver presence has higher priority than every alarm type: immediately stop application speech/sounds and mute the active Windows output, preserving its prior volume and mute state for later restoration.
 - A manual choking trigger must remain available in every mode, including caregiver mode.
 - Voice recognition is secondary: useful when Tyler can speak, but not part of the minimum automatic safety path.
 
@@ -170,7 +171,9 @@ The state machine must be explicit and independently testable. UI labels may be 
    - Require two spatially separate, temporally stable human tracks for at least two seconds.
    - Cancel pending warnings and stop repeat SMS messages.
    - Enter `CAREGIVER_PRESENT`.
-   - Make caregiver arrival silent: update visual state only and do not play a tone or spoken announcement.
+   - Immediately stop all Fall Detector speech and sounds and mute the active Windows output so audio from other applications is also silenced.
+   - Preserve the previous Windows volume/mute state and application alert volume.
+   - Keep caregiver mode completely silent; update visual state only and do not play a tone or spoken announcement.
    - Manual emergency controls remain active.
 
 4. **Safe departure**
@@ -181,6 +184,7 @@ The state machine must be explicit and independently testable. UI labels may be 
 5. **Return**
    - Returning with a caregiver enters `CAREGIVER_PRESENT`.
    - After the caregiver leaves, require Tyler to be visible in a calibrated safe position for 30 continuous seconds before entering `ARMED`.
+   - Restore the preserved Windows volume/mute state and selected application alert volume only after the 30-second rearm succeeds.
 
 6. **Restart recovery**
    - Persist the last deliberate mode and active-incident metadata atomically.
@@ -334,11 +338,11 @@ The immediate choking control needs strong visual separation from test and confi
 - Show the reason and remaining seconds in very large type.
 - Speak the warning and play a distinctive repeating sound.
 - Use the manually selected volume for ordinary and severe-fall warnings.
-- For a choking trigger only, temporarily unmute and force the active Windows output and application alert to maximum volume; restore the previous settings after resolution.
+- For a choking trigger, temporarily unmute and force the active Windows output and application alert to maximum volume when no caregiver is present; restore the previous settings after resolution.
 - Provide one dominant **Cancel Alert** button.
 - Accept configured mouse, phone, keyboard, and voice cancellation inputs.
 - Allow automatic visual recovery and caregiver detection to cancel.
-- When caregiver detection cancels an alarm, stop audio immediately without playing an arrival or dismissal sound.
+- When caregiver detection occurs, stop Fall Detector audio and mute the active Windows output immediately without playing an arrival or dismissal sound. Caregiver-mode silence overrides the choking maximum-volume behavior.
 
 ### Windows notifications
 
@@ -626,13 +630,14 @@ Every case must be tested in ordinary and darkest lighting where relevant.
 - manual fall trigger and cancellation;
 - immediate choking trigger with no countdown;
 - ordinary alarms respect the selected alert volume without changing Windows volume;
-- choking temporarily unmutes and reaches maximum volume, then restores the previous Windows and application settings;
+- choking temporarily unmutes and reaches maximum volume when no caregiver is present, then restores the previous Windows and application settings;
 - the volume control and **Test Sound** are usable with one pointer/tap workflow.
 
 ### Caregiver and away behavior
 
 - caregiver enters normally and partially;
-- caregiver arrival updates the visual state without producing any sound;
+- caregiver arrival stops application audio, mutes the active Windows output, and updates the visual state without producing any sound;
+- the prior Windows and application volume state returns only after the caregiver leaves and 30-second safe rearming completes;
 - caregiver obstructs the camera;
 - caregiver assists and remains in frame;
 - caregiver leaves while Tyler remains safe;
