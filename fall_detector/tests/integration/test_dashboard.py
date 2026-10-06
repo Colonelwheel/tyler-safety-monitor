@@ -620,3 +620,24 @@ def test_long_saved_paths_do_not_widen_calibration_controls(window, application,
     assert scroll.horizontalScrollBar().maximum() <= baseline_scroll
     tools.message("Next capture is idle")
     assert not tools.status.toolTip() and not tools.status.accessibleDescription()
+
+
+def test_scaled_screen_height_keeps_bottom_and_essential_controls_inside_window(window, application):
+    window.resize(1800, 640)
+    window.tabs.setCurrentIndex(1)
+    window.show()
+    application.processEvents()
+    assert window.width() <= 1800 and window.height() <= 640
+    scroll = window.tabs.widget(1)
+    scroll.verticalScrollBar().setValue(scroll.verticalScrollBar().maximum())
+    application.processEvents()
+    last = next(control for control in window.tools.findChildren(QPushButton)
+                if control.text() == "Live View • Camera Stays Paused")
+    last_rect = last.rect().translated(last.mapTo(scroll.viewport(), QPoint(0, 0)))
+    assert last_rect.top() >= 0 and last_rect.bottom() < scroll.viewport().height()
+    essential = [window.capture_stop] + [control for control in window.findChildren(QPushButton)
+        if control.text() in {"Decrease", "Increase", "Test Sound", "Stop Test Sound"}]
+    for control in essential:
+        rect = control.rect().translated(control.mapTo(window.centralWidget(), QPoint(0, 0)))
+        assert window.centralWidget().rect().contains(rect)
+        assert control.height() >= 60

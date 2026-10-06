@@ -156,3 +156,28 @@ The tracked head-position ranges overlap; the optional step includes recovery.
 There is measurable movement, but reliable posture discrimination is not yet
 demonstrated. Evaluate tilt as well as position using replay before treating a
 personal zone or allowance as suitable for detection.
+
+## Separately approved desktop-launch and relocation follow-up
+
+Tyler reported the missing-model warning again from the Desktop launch and a
+partially visible bottom replay control. He approved moving the working copy to
+`C:\Codex Projects\Tyler Safety Monitor` and updating the existing shortcut while
+retaining the OneDrive original. The full Git repository and isolated environment
+were copied and verified; only copied environment path references and associated
+metadata were updated. No global Python packages were changed or reinstalled.
+Saved models/settings/calibration remain in AppData.
+
+The launcher now passes the existing Full model explicitly and prevents bytecode
+writes. Its camera-free integration regression executes the actual command file
+with spaced synthetic paths. No startup download or model replacement was added.
+The earlier desktop dashboard showed both missing-model and default-settings
+status despite the expected files existing; the underlying cause and OneDrive
+involvement remain unconfirmed.
+
+Screen-fit changes preserve 60-pixel buttons while allowing the preview to shrink,
+wrapping passive notes, putting the volume label above its buttons and limiting
+initial size to the available display area. The bottom replay button's vertical
+bounds and essential controls are tested at reduced usable height. All 211
+synthetic tests and dependency checks passed in the relocated copy. Live
+post-relocation verification remains pending. No new feature capture or imagery
+recording was performed for this repair.

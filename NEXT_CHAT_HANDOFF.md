@@ -2,6 +2,12 @@
 
 Updated: October 5, 2026.
 
+Preferred working copy: `C:\Codex Projects\Tyler Safety Monitor`. Tyler approved
+relocation outside OneDrive and updating the existing Desktop shortcut. The
+original project and environment remain intact as a backup; continue development
+in the local copy. Full Git history and the existing origin were copied. Saved
+private AppData files remain at their original locations.
+
 ## Ready-to-use opening prompt
 
 > Continue Tyler Safety Monitor in this existing project. Before changes, discover and read every project-authored Markdown file: AGENTS.md, README.md, PROJECT_ROADMAP.md, FALL_DETECTOR_BLUEPRINT.md, NEXT_CHAT_HANDOFF.md, fall_detector/README.md, and all fall_detector/docs documents. Treat FALL_DETECTOR_BLUEPRINT.md as the approved baseline.
@@ -53,6 +59,11 @@ Open **Calibration / Replay**, then **Synthetic Replay Demo**, then **Play / Pau
 
 Next action: inspect current application ownership and private saved profiles/features, then review ordinary/intentional-lean envelopes and the small day-to-day allowance with Tyler. Both initial captures are already saved; do not ask him to repeat them merely because the app restarted. They are separate sessions with matching scene configuration, not a combined reviewed operational profile. Preserve provenance and leave safety-critical boundaries unapproved.
 
+Tyler confirmed that varying sideways head tilts are safe variation by themselves.
+An accompanying downward position must still be evaluated independently; lateral
+tilt must not itself become a danger trigger or cancel downward evidence. This is
+a requirement for later reviewed detection work, not implemented classification.
+
 The observed head-position ranges overlap, and the intentional-lean sequence includes return to ordinary posture. Measurable movement is present, but reliable discrimination has not been demonstrated. Compare head tilt as well as position in saved-feature replay before choosing detection features or accepting a personal allowance.
 
 For any separately agreed new collection: verify ownership, fixed camera and reflection masks; choose a visible unambiguous candidate and explain the safe step first. Its visible five-second delay precedes up to 15 seconds of derived features. Always-visible Stop/Review ends early. Hiding/minimizing/fault/pause ends collection.
@@ -79,3 +90,27 @@ Additional head-down/recovery collection requires another agreed session. Assist
 ## Milestone 2 decisions that remain genuinely pending
 
 Source implementation approval is required. Exact personal zones, severe-risk signal weights, physical recognition behavior and calibration margin must not be guessed. Synthetic state-machine implementation can remain uncalibrated and simulated while real capture/assisted validation is deferred. Later live arming still requires every blueprint acceptance gate, supervised validation and explicit approval.
+
+## Desktop launch and screen-fit follow-up
+
+The Desktop shortcut now targets the local copy. `Start Monitor.cmd` passes the
+existing Full model path explicitly and disables bytecode writes with `-B`. A
+Windows integration test executes the actual launcher with a fake package, paths
+containing spaces and no camera access, verifying the model argument and bytecode
+write flag. The repeated earlier missing-model warning was observed alongside
+default settings; its precise cause and any OneDrive contribution remain unconfirmed.
+
+The dashboard initial size now fits the available screen area, the preview can
+shrink vertically, and passive notes wrap. The volume label sits above the four
+large buttons. Every essential button keeps its 60-pixel minimum. A constrained
+height regression checks the final replay button's vertical bounds after scrolling
+and the always-visible Stop/volume controls' bounds. All 211 synthetic tests and
+the dependency check passed in the relocated environment.
+
+All 10,950 source-copy files were verified by SHA256 before relocation-specific
+environment edits. Only the copied editable paths, command-wrapper paths,
+activation reference and corresponding package metadata were adjusted; packages
+were not reinstalled and global Python was unchanged. The original environment
+and project remain intact. Shortcut/environment backups and verification reports
+are outside Git. Live post-relocation verification is pending. Milestone 2 and
+new personalized capture remain unapproved.

@@ -27,7 +27,7 @@ class Preview(QWidget):
 
     def __init__(self) -> None:
         super().__init__()
-        self.setMinimumSize(480, 270)
+        self.setMinimumSize(480, 180)
         self.image = None
         self.scene = SceneConfig()
         self.tracks = []
@@ -181,7 +181,7 @@ class Dashboard(QMainWindow):
         # setup panel, even on Windows displays with large text scaling.
         volume_row = QHBoxLayout()
         self.volume_label = QLabel()
-        volume_row.addWidget(self.volume_label)
+        main.addWidget(self.volume_label)
         volume_row.addWidget(button("Decrease", lambda: self.change_volume(-0.1)))
         volume_row.addWidget(button("Increase", lambda: self.change_volume(0.1)))
         volume_row.addWidget(button("Test Sound", self.test_sound))
@@ -194,7 +194,9 @@ class Dashboard(QMainWindow):
         self.pose_status = QLabel("Pose model not started")
         self.pose_status.setWordWrap(True)
         main.addWidget(self.pose_status)
-        main.addWidget(QLabel("Tracks are person candidates. No fall classification or caregiver confirmation."))
+        candidates_note = QLabel("Tracks are person candidates. No fall classification or caregiver confirmation.")
+        candidates_note.setWordWrap(True)
+        main.addWidget(candidates_note)
         legend = QLabel("Landmark scores: green ≥80%, amber 50–80%, hidden below 50%. Visibility/presence scores are not safety accuracy.")
         legend.setWordWrap(True)
         main.addWidget(legend)
@@ -226,7 +228,9 @@ class Dashboard(QMainWindow):
         controls.addWidget(button("Start / Retry Camera", self.start_camera))
         controls.addWidget(button("Pause Camera", self.pause_camera))
 
-        controls.addWidget(QLabel("Inference region • two separate taps"))
+        region_note = QLabel("Inference region • two separate taps")
+        region_note.setWordWrap(True)
+        controls.addWidget(region_note)
         controls.addWidget(button("Set ROI", lambda: self.begin_edit("roi")))
         controls.addWidget(button("Add Exclusion Mask", lambda: self.begin_edit("mask")))
         controls.addWidget(button("Cancel Region Edit", self.cancel_edit))
@@ -269,6 +273,10 @@ class Dashboard(QMainWindow):
             QScrollBar::handle:vertical {background:#607d9e;min-height:65px;}
         """)
         self.update_volume_label()
+
+        # Leave room for window decorations and the taskbar on scaled displays.
+        available = self.screen().availableGeometry()
+        self.resize(min(1400, available.width() - 20), min(900, available.height() - 60))
 
         self.tray_available = QSystemTrayIcon.isSystemTrayAvailable()
         if not self.tray_available:

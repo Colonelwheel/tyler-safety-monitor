@@ -10,6 +10,15 @@ The root compliance website and its GitHub Pages URLs remain unchanged.
 
 ## Open the installed dashboard
 
+The preferred working copy on this PC is `C:\Codex Projects\Tyler Safety Monitor`,
+with its existing Git history and GitHub remote preserved. The Desktop shortcut
+launches this local copy. The earlier OneDrive copy is retained as a backup.
+Saved models, settings and calibration files remain in their existing private
+AppData location.
+
+The launcher passes the existing Full model path explicitly and uses `-B` to
+prevent bytecode writes. It does not download or replace a model.
+
 Open **Start Monitor.cmd** in this folder. It launches the isolated application
 minimized, with a tray icon. One click on that icon opens the live dashboard.
 Closing the dashboard returns it to the tray and camera processing continues.
