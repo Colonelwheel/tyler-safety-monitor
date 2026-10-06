@@ -178,6 +178,10 @@ Screen-fit changes preserve 60-pixel buttons while allowing the preview to shrin
 wrapping passive notes, putting the volume label above its buttons and limiting
 initial size to the available display area. The bottom replay button's vertical
 bounds and essential controls are tested at reduced usable height. All 211
-synthetic tests and dependency checks passed in the relocated copy. Live
-post-relocation verification remains pending. No new feature capture or imagery
-recording was performed for this repair.
+synthetic tests and dependency checks passed in the relocated copy. The actual
+updated Desktop shortcut passed a short live check: pose inference and a
+head-candidate overlay were present, saved settings/reflection mask loaded, and
+the final replay control was fully visible after scrolling. The monitor was left
+minimized with capture idle and ordinary processing continuing. No new feature
+capture or imagery recording was performed for this repair. Sustained stability
+and safety-recognition accuracy remain unvalidated.

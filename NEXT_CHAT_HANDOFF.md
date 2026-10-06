@@ -112,5 +112,10 @@ environment edits. Only the copied editable paths, command-wrapper paths,
 activation reference and corresponding package metadata were adjusted; packages
 were not reinstalled and global Python was unchanged. The original environment
 and project remain intact. Shortcut/environment backups and verification reports
-are outside Git. Live post-relocation verification is pending. Milestone 2 and
-new personalized capture remain unapproved.
+are outside Git. The actual updated Desktop shortcut passed a short live check:
+pose inference and a head-candidate overlay were present, saved scene settings
+and the reflection mask loaded, and the final replay control was fully visible
+after scrolling to the bottom. No feature capture was active. The monitor was
+left minimized with ordinary camera processing continuing. This does not establish
+sustained stability or safety-recognition accuracy. Milestone 2 and new personalized
+capture remain unapproved.
