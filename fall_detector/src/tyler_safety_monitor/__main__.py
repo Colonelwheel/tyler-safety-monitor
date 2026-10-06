@@ -15,6 +15,7 @@ def main() -> int:
     parser.add_argument("--model", type=Path, help="local pose model; never downloaded at startup")
     parser.add_argument("--no-camera", action="store_true", help="open controls without accessing camera")
     parser.add_argument("--quit-after", type=float, help="bounded smoke-test runtime in seconds")
+    parser.add_argument("--diagnostics", action="store_true", help="save startup path/file checks only; no imagery or features")
     args = parser.parse_args()
     if args.quit_after is not None and (not math.isfinite(args.quit_after) or not 0 < args.quit_after <= 86400):
         parser.error("--quit-after must be finite and between zero and 86400 seconds")
@@ -28,6 +29,13 @@ def main() -> int:
     application.setQuitOnLastWindowClosed(False)
     model = args.model or data_directory() / "models" / "pose_landmarker_full.task"
     dashboard = Dashboard(model, enable_camera=not args.no_camera)
+    if args.diagnostics:
+        from .launch_diagnostics import write_startup_diagnostic
+        try:
+            report = write_startup_diagnostic(model, dashboard.pose_status.text())
+            dashboard.pose_status.setAccessibleDescription(f"Startup diagnostic: {report}")
+        except OSError as error:
+            dashboard.pose_status.setAccessibleDescription(f"Startup diagnostic could not be saved: {error}")
     application.aboutToQuit.connect(dashboard.shutdown)
     if args.show or not dashboard.tray_available:
         dashboard.show()

@@ -204,3 +204,22 @@ bounded backoff. Inference initialization/results report faults. Native pose
 calls run on a background thread; a stuck native thread prevents replacement
 workers and requires exiting/restarting the application. Independent watchdog
 recovery and Windows startup remain Milestone 5 work.
+
+## Startup file diagnostics
+
+Use `--diagnostics` on an explicitly requested troubleshooting launch to save one
+new private startup report under `%LOCALAPPDATA%\TylerSafetyMonitor\diagnostics`.
+It records paths, source-module locations, file readability, selected LOCALAPPDATA
+values and Windows handle final paths/errors. It saves no imagery, feature values,
+settings contents or broad environment dump. Normal Desktop launches do not enable
+this option; do not commit diagnostic files.
+
+Codex's packaged Windows runtime can redirect logical AppData access into its own
+LocalCache even when LOCALAPPDATA contains the ordinary host path. On October 5,
+this caused agent-launched checks to find the models/settings while Tyler's Desktop
+launch could not. With explicit approval, the eight existing runtime files were
+copied into ordinary host AppData without replacing anything, and the user-launched
+dashboard then loaded saved settings and completed live pose inference. Retained
+cached originals remain untouched. Verify physical handle paths in the actual user
+launch before diagnosing another apparent missing file or collecting real features;
+a successful agent-spawned check alone is insufficient. See the handoff for details.

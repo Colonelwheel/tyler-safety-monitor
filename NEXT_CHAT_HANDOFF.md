@@ -98,7 +98,7 @@ existing Full model path explicitly and disables bytecode writes with `-B`. A
 Windows integration test executes the actual launcher with a fake package, paths
 containing spaces and no camera access, verifying the model argument and bytecode
 write flag. The repeated earlier missing-model warning was observed alongside
-default settings; its precise cause and any OneDrive contribution remain unconfirmed.
+default settings; the later in-process diagnosis below establishes the recurrence's cause.
 
 The dashboard initial size now fits the available screen area, the preview can
 shrink vertically, and passive notes wrap. The volume label sits above the four
@@ -112,10 +112,53 @@ environment edits. Only the copied editable paths, command-wrapper paths,
 activation reference and corresponding package metadata were adjusted; packages
 were not reinstalled and global Python was unchanged. The original environment
 and project remain intact. Shortcut/environment backups and verification reports
-are outside Git. The actual updated Desktop shortcut passed a short live check:
+are outside Git. An agent-launched check of the updated Desktop shortcut passed a short live check:
 pose inference and a head-candidate overlay were present, saved scene settings
 and the reflection mask loaded, and the final replay control was fully visible
 after scrolling to the bottom. No feature capture was active. The monitor was
 left minimized with ordinary camera processing continuing. This does not establish
 sustained stability or safety-recognition accuracy. Milestone 2 and new personalized
 capture remain unapproved.
+
+## Desktop launch runtime-data correction — October 5, 2026
+
+The missing-model warning recurred in Tyler's own Desktop launch after the earlier
+agent-launched checks passed. In-process diagnostics established the cause: the
+Desktop process returned Windows path-not-found errors for both the model and
+settings directories, while the agent-launched process resolved those logical
+AppData paths to Codex's packaged-app LocalCache. Matching LOCALAPPDATA environment
+strings and explicit model arguments did not imply the same physical files.
+Windows handle final paths exposed the redirection. OneDrive was not the cause of
+this recurrence. See [Microsoft's packaged desktop app filesystem documentation](https://learn.microsoft.com/en-us/windows/msix/desktop/desktop-to-uwp-behind-the-scenes).
+
+Tyler explicitly approved copying the eight existing private runtime files (three
+models, one settings revision, two profiles and two feature replays) into ordinary
+host AppData. A one-time helper ran through Tyler's Desktop launch, preflighted all
+source hashes and destinations, used exclusive creates, and checked every copied
+file plus its original afterward. Existing destination files were never replaced;
+all cached originals remain. Its temporary launcher step was removed after the
+verified copy. No package reinstall, new download, feature collection or imagery
+recording was needed.
+
+The resulting user-launched dashboard read the Full model from ordinary AppData,
+loaded saved settings and completed live pose inference (over 700 results at the
+check), with camera live and calibration idle. This directly validates Tyler's
+Desktop launch, rather than an agent-spawned process. It does not validate safety
+classification, long-term stability or personalized thresholds. Milestone 2 remains
+unapproved.
+
+The application now has an optional `--diagnostics` switch. It creates one exclusive
+JSON file beneath the effective AppData diagnostics directory with startup paths,
+module locations, selected LOCALAPPDATA values and model/directory file checks,
+including Windows errors and handle final paths/identities. It does not retain
+model bytes, settings contents, features, camera images or other environment values.
+Normal Desktop launches do not enable it. Diagnostic reports are private and must
+never enter Git. All 213 synthetic tests passed after this follow-up.
+
+For future real camera/calibration sessions, prefer Tyler's ordinary Desktop launch.
+An agent's packaged-app filesystem view can still expose retained cached revisions;
+do not treat matching environment strings, a shell `exists` check, or a successful
+agent-spawned dashboard as proof of the user process's physical runtime location.
+Inspect handle final paths using a user-launched `--diagnostics` session if another
+file-visibility issue appears. Preserve both runtime copies; do not silently merge,
+replace or delete revisions.

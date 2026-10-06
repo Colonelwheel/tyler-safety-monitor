@@ -178,10 +178,53 @@ Screen-fit changes preserve 60-pixel buttons while allowing the preview to shrin
 wrapping passive notes, putting the volume label above its buttons and limiting
 initial size to the available display area. The bottom replay button's vertical
 bounds and essential controls are tested at reduced usable height. All 211
-synthetic tests and dependency checks passed in the relocated copy. The actual
+synthetic tests and dependency checks passed in the relocated copy. An agent-launched check of the
 updated Desktop shortcut passed a short live check: pose inference and a
 head-candidate overlay were present, saved settings/reflection mask loaded, and
 the final replay control was fully visible after scrolling. The monitor was left
 minimized with capture idle and ordinary processing continuing. No new feature
 capture or imagery recording was performed for this repair. Sustained stability
 and safety-recognition accuracy remain unvalidated.
+
+## Desktop launch runtime-data correction — October 5, 2026
+
+The missing-model warning recurred in Tyler's own Desktop launch after the earlier
+agent-launched checks passed. In-process diagnostics established the cause: the
+Desktop process returned Windows path-not-found errors for both the model and
+settings directories, while the agent-launched process resolved those logical
+AppData paths to Codex's packaged-app LocalCache. Matching LOCALAPPDATA environment
+strings and explicit model arguments did not imply the same physical files.
+Windows handle final paths exposed the redirection. OneDrive was not the cause of
+this recurrence. See [Microsoft's packaged desktop app filesystem documentation](https://learn.microsoft.com/en-us/windows/msix/desktop/desktop-to-uwp-behind-the-scenes).
+
+Tyler explicitly approved copying the eight existing private runtime files (three
+models, one settings revision, two profiles and two feature replays) into ordinary
+host AppData. A one-time helper ran through Tyler's Desktop launch, preflighted all
+source hashes and destinations, used exclusive creates, and checked every copied
+file plus its original afterward. Existing destination files were never replaced;
+all cached originals remain. Its temporary launcher step was removed after the
+verified copy. No package reinstall, new download, feature collection or imagery
+recording was needed.
+
+The resulting user-launched dashboard read the Full model from ordinary AppData,
+loaded saved settings and completed live pose inference (over 700 results at the
+check), with camera live and calibration idle. This directly validates Tyler's
+Desktop launch, rather than an agent-spawned process. It does not validate safety
+classification, long-term stability or personalized thresholds. Milestone 2 remains
+unapproved.
+
+The application now has an optional `--diagnostics` switch. It creates one exclusive
+JSON file beneath the effective AppData diagnostics directory with startup paths,
+module locations, selected LOCALAPPDATA values and model/directory file checks,
+including Windows errors and handle final paths/identities. It does not retain
+model bytes, settings contents, features, camera images or other environment values.
+Normal Desktop launches do not enable it. Diagnostic reports are private and must
+never enter Git. All 213 synthetic tests passed after this follow-up.
+
+For future real camera/calibration sessions, prefer Tyler's ordinary Desktop launch.
+An agent's packaged-app filesystem view can still expose retained cached revisions;
+do not treat matching environment strings, a shell `exists` check, or a successful
+agent-spawned dashboard as proof of the user process's physical runtime location.
+Inspect handle final paths using a user-launched `--diagnostics` session if another
+file-visibility issue appears. Preserve both runtime copies; do not silently merge,
+replace or delete revisions.
