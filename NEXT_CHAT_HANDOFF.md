@@ -162,3 +162,54 @@ agent-spawned dashboard as proof of the user process's physical runtime location
 Inspect handle final paths using a user-launched `--diagnostics` session if another
 file-visibility issue appears. Preserve both runtime copies; do not silently merge,
 replace or delete revisions.
+
+
+## Tracking stability follow-up — October 5, 2026
+
+Tyler reported rapid changes between detected and uncertain head markers at his
+current tolerable nighttime lighting, including while still. The temporary
+smaller-ROI experiment did not establish stability; the original full-frame ROI
+was restored without saving settings or collecting new features.
+
+The approved repair adds bounded in-memory counts, replaces greedy association
+with maximum-cardinality/minimum-distance one-to-one assignment, and keeps
+conservative duplicate/crossing uncertainty and continuity resets. A synthetic
+counterexample demonstrated that greedy matching created a new ID despite a
+valid two-track assignment. Exhaustive small-graph tests verify the new objective.
+No visibility thresholds, model parameters, calibration provenance or approved
+personal files changed.
+
+A currently detected head has a cyan ring independently of amber uncertain-ID
+text. Missing heads are never held forward as current detections. Candidate
+selection rows now update by ID instead of rebuilding each batch. A selected
+missing candidate remains explicitly unavailable; it is never silently replaced
+by another candidate. Capture still requires a current unambiguous observation.
+Camera restart/pause, scene changes and New Session clear obsolete selections.
+
+Two short user-launched checks demonstrated separate causes: an initial 10-second
+window had 133 observation batches, no missing-head batch, 101 duplicate batches
+and 33 ambiguous-match batches. A later 132-batch window after the association
+repair had 33 missing-head batches, 7 duplicate batches and no ambiguous-match
+batch. These are uncontrolled short samples, not comparable accuracy scores.
+Tyler still reported marker churn. Genuine head-loss is unresolved; the ID/UI
+repair must not be described as fixing native detection or establishing safety.
+
+The Camera / Masks panel includes ten-second model counts distinguishing no
+native pose from a native pose with all heads rejected by validation. Counts and
+booleans are bounded in memory; no images, additional coordinates or logs are
+saved. Scene edits clear these counts, and late old-scene callbacks cannot refill
+them. The latest model-count and incremental-selector changes require a fresh
+ordinary Desktop launch for live verification. All 227 synthetic tests passed;
+independent review found no concrete regression in association or selection.
+
+A read-only exploratory Google BlazeFace Full Range trial used three previously
+supplied dashboard screenshots, cropping/rotating only in memory. A new official
+model was stored in isolated private scratch, outside Git; global packages and
+ordinary AppData models were unchanged. Full and lower views returned no face in
+10 repeated inferences per sample. A closer, rotated view returned one face in
+the night sample in a single exploratory inference. This is a lead for a separate
+live comparison, not evidence of sustained tracking, validated identity or a
+replacement for Full. No alternative detector is enabled in the application.
+Model/pipeline changes must preserve provenance and must not silently make old
+profiles operational under a different measurement. See docs/MODELS.md for
+source and limitations. Milestone 2 remains unapproved.

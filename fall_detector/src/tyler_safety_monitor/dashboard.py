@@ -91,10 +91,13 @@ class Preview(QWidget):
         for track in self.tracks:
             x = area.x() + track.head[0] * area.width()
             y = area.y() + track.head[1] * area.height()
-            color = QColor("#ffd66e") if track.identity_uncertain else QColor("#66dbff")
-            painter.setPen(QPen(color, 3))
+            # A current head remains visibly detected even when ID association
+            # is uncertain. Never carry a missing head forward to hide a gap.
+            painter.setPen(QPen(QColor("#66dbff"), 3))
             painter.drawEllipse(QRectF(x - 9, y - 9, 18, 18))
-            painter.drawText(int(x + 14), int(y), f"P{track.id}  {track.confidence:.0%}")
+            painter.setPen(QPen(QColor("#ffd66e" if track.identity_uncertain else "#66dbff"), 3))
+            identity = " ID uncertain" if track.identity_uncertain else ""
+            painter.drawText(int(x + 14), int(y), f"P{track.id}{identity}  {track.confidence:.0%}")
             for point, scores in zip(track.landmarks, getattr(track, "landmark_scores", ())):
                 confidence = min(scores)
                 # Never render invisible inferred limbs as confirmed landmarks.
@@ -244,6 +247,9 @@ class Dashboard(QMainWindow):
         self.settings_status = QLabel(settings_status)
         self.settings_status.setWordWrap(True)
         controls.addWidget(self.settings_status)
+        self.tracking_status = QLabel("Tracking diagnostics: no live results")
+        self.tracking_status.setWordWrap(True)
+        controls.addWidget(self.tracking_status)
         self.minimize_button = button("Minimize to Tray", self.minimize_dashboard)
         controls.addWidget(self.minimize_button)
         controls.addWidget(button("Exit Application", QApplication.instance().quit))
@@ -386,6 +392,7 @@ class Dashboard(QMainWindow):
         self._pose_inputs.clear()
         self._model_timestamp = -1
         self._capture_generation += 1
+        self.tools.reset_candidate_choices()
         self.settings = self.read_controls()
         self.capture = CameraCapture(CameraSettings(index=self.settings.camera_index,
                                       backend=self.settings.backend, fps=self.settings.fps))
@@ -408,6 +415,7 @@ class Dashboard(QMainWindow):
     def pause_camera(self) -> None:
         self.tools.stop_capture("Camera paused; previously collected features remain in memory.")
         self.tools.last_live_tracks = []
+        self.tools.reset_candidate_choices()
         self.tools.trajectory.clear()
         self.preview.trajectory_segments = {}
         self.preview.zones = {}
@@ -440,6 +448,7 @@ class Dashboard(QMainWindow):
         self.preview.update()
         self.health.setText("Camera paused • no automatic monitoring or messaging")
         self.pose_status.setText("Pose processing paused")
+        self.tracking_status.setText("Tracking diagnostics paused; no current head detection")
 
     def finish_cleanup(self, capture, pose, stopped: bool, cleanup_exception: bool = False) -> None:
         self._retiring = None
@@ -613,7 +622,15 @@ class Dashboard(QMainWindow):
                                    else "initializing local model")
             self.pose_status.setText(f"Pose: {pose_state} • "
                                      f"submitted {stats.submitted} / completed {stats.completed} / skipped {stats.dropped}")
+            self.tracking_status.setText(
+                "Head rings show current detections; amber ID text means uncertain identity. "
+                + f"Model: raw poses {getattr(stats, 'raw_poses', 0)}, accepted heads {getattr(stats, 'accepted_heads', 0)}. "
+                + f"Model last 10s ({getattr(stats, 'diagnostic_frames', 0)} results): "
+                + f"no native pose {getattr(stats, 'no_pose_frames', 0)}, "
+                + f"pose present but head rejected {getattr(stats, 'rejected_head_frames', 0)}. "
+                + self.tracker.diagnostics.summary())
         if metrics.state != "LIVE" or time.monotonic() - self.last_pose_seen_at > 1.0:
+            self.tracking_status.setText("Tracking unavailable: no current pose result. Previous positions are not held.")
             self.preview.tracks = []
             self.tools.last_live_tracks = []
             self.tools.trajectory.clear()

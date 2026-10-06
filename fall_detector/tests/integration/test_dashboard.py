@@ -641,3 +641,65 @@ def test_scaled_screen_height_keeps_bottom_and_essential_controls_inside_window(
         rect = control.rect().translated(control.mapTo(window.centralWidget(), QPoint(0, 0)))
         assert window.centralWidget().rect().contains(rect)
         assert control.height() >= 60
+
+
+def test_duplicate_candidate_label_keeps_visibility_and_identity_separate():
+    track = Track(1, (.5, .5), None, .9, 1, 1, identity_uncertain=True,
+                  uncertainty_reasons=("duplicate heads",))
+    label = tooling.candidate_label(track)
+    assert "head visible" in label
+    assert "ID uncertain: duplicate heads" in label
+    assert track.identity_uncertain  # Display wording does not authorize continuity.
+
+
+def test_tracking_diagnostics_do_not_force_global_controls_off_screen(window, application):
+    window.tracking_status.setText("Head rings show current detections; amber ID text means uncertain identity. "
+                                   "Model: raw poses 2, accepted heads 2. " + window.tracker.diagnostics.summary())
+    window.resize(1800, 640)
+    window.show()
+    application.processEvents()
+    assert window.capture_stop.mapTo(window, QPoint(0, 0)).y() + window.capture_stop.height() <= window.height()
+    for label in ("Decrease", "Increase", "Test Sound", "Stop Test Sound"):
+        control = next(b for b in window.findChildren(QPushButton) if b.text() == label)
+        assert control.mapTo(window, QPoint(0, 0)).y() + control.height() <= window.height()
+
+
+def test_selected_candidate_survives_gap_without_silent_reassignment(window):
+    tools = window.tools
+    tools.update_candidates([Track(1, (.5, .5), None, .9, 1, 1)], 1)
+    tools.candidate.setCurrentIndex(tools.candidate.findData(1))
+    tools.update_candidates([], 1.1)
+    assert tools.candidate.currentData() == 1
+    assert "not visible" in tools.candidate.currentText()
+    tools.update_candidates([Track(2, (.6, .5), None, .9, 3, 3)], 3)
+    assert tools.candidate.currentData() == 1  # Never silently selects the new ID.
+    assert tools.candidate.findData(2) >= 0
+    tools.reset_candidate_choices()
+    assert tools.candidate.currentData() is None and tools.candidate.count() == 1
+
+
+def test_candidate_uncertainty_updates_keep_keyed_row_and_selection(window):
+    tools = window.tools
+    clear = Track(1, (.5, .5), None, .9, 1, 1)
+    uncertain = Track(1, (.5, .5), None, .9, 1.1, 1.1, identity_uncertain=True,
+                      uncertainty_reasons=("duplicate heads",))
+    tools.update_candidates([clear], 1)
+    index = tools.candidate.findData(1)
+    tools.candidate.setCurrentIndex(index)
+    tools.update_candidates([uncertain], 1.1)
+    assert tools.candidate.currentIndex() == index and tools.candidate.currentData() == 1
+    assert "ID uncertain" in tools.candidate.currentText()
+    tools.update_candidates([clear], 1.2)
+    assert tools.candidate.currentIndex() == index and tools.candidate.currentData() == 1
+    assert tools.candidate.count() == 2
+
+
+def test_unselected_missing_candidate_expires_and_scene_clears_selection(window):
+    tools = window.tools
+    tools.update_candidates([Track(1, (.5, .5), None, .9, 1, 1)], 1)
+    tools.update_candidates([], 2.1)
+    assert tools.candidate.count() == 1
+    tools.update_candidates([Track(2, (.5, .5), None, .9, 3, 3)], 3)
+    tools.candidate.setCurrentIndex(tools.candidate.findData(2))
+    tools.scene_changed()
+    assert tools.candidate.currentData() is None and tools.candidate.count() == 1

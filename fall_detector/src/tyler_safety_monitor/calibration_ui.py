@@ -39,6 +39,14 @@ ZONE_NAMES = ("safe", "intentional_lean", "soft_boundary", "hard_boundary",
               "expected_person", "caregiver_entry")
 
 
+def candidate_label(track):
+    label = f"P{track.id} • head visible"
+    if track.identity_uncertain:
+        reasons = ", ".join(track.uncertainty_reasons) or "association"
+        label += f"; ID uncertain: {reasons}"
+    return label
+
+
 class MilestoneTools(QWidget):
     def __init__(self, dashboard):
         super().__init__()
@@ -63,6 +71,7 @@ class MilestoneTools(QWidget):
         self.replay_tracker = PersonTracker()
         self.trajectory = TrajectoryHistory()
         self.last_live_tracks = []
+        self._candidate_seen = {}
         self.saved_sample_count = 0
         layout = QVBoxLayout(self)
         heading = QLabel("CALIBRATION TOOLING • Alerts disabled\nCaregiver and assisted steps remain pending until supervised validation.")
@@ -243,22 +252,48 @@ class MilestoneTools(QWidget):
             self.candidate.setEnabled(True)
             self.message(f"Capture stopped. {len(self.samples)} feature samples retained in memory. Review proposals before saving. {reason if isinstance(reason, str) else ''}")
 
+    def reset_candidate_choices(self):
+        self._candidate_seen.clear()
+        self.candidate.clear()
+        self.candidate.addItem("Choose your person candidate", None)
+
+    def update_candidates(self, tracks, captured_at):
+        """Update keyed rows instead of rebuilding a popup on each native result.
+
+        A selected missing ID remains explicitly unavailable; it is never silently
+        selected as a different person. Unselected missing rows expire after 1s.
+        Capture eligibility still uses only the current unambiguous live tracks.
+        """
+        selected = self.candidate.currentData()
+        live = {track.id: track for track in tracks}
+        for id_ in live:
+            self._candidate_seen[id_] = captured_at
+        retained = {id_ for id_, seen in self._candidate_seen.items()
+                    if id_ == selected or captured_at - seen <= 1}
+        if selected is not None:
+            retained.add(selected)
+        blocked = self.candidate.blockSignals(True)
+        try:
+            for index in range(self.candidate.count() - 1, 0, -1):
+                id_ = self.candidate.itemData(index)
+                if id_ not in retained:
+                    self.candidate.removeItem(index)
+            for id_ in sorted(retained):
+                index = self.candidate.findData(id_)
+                label = candidate_label(live[id_]) if id_ in live else f"P{id_} • head not visible; unavailable"
+                if index < 0:
+                    self.candidate.addItem(label, id_)
+                elif self.candidate.itemText(index) != label:
+                    self.candidate.setItemText(index, label)
+            self.candidate.setCurrentIndex(max(0, self.candidate.findData(selected)))
+        finally:
+            self.candidate.blockSignals(blocked)
+        self._candidate_seen = {id_: seen for id_, seen in self._candidate_seen.items() if id_ in retained}
+
     def observe(self, result, tracks, frame_index, captured_at):
         self.last_live_tracks = tracks
         if self.state not in {"delay", "capturing"}:
-            selected = self.candidate.currentData()
-            ids = [self.candidate.itemData(i) for i in range(1, self.candidate.count())]
-            live = [t.id for t in tracks]
-            if ids != live:
-                self.candidate.clear()
-                self.candidate.addItem("Choose your person candidate", None)
-                for t in tracks:
-                    self.candidate.addItem(f"P{t.id} • candidate {'uncertain' if t.identity_uncertain else 'visible'}", t.id)
-                index = self.candidate.findData(selected)
-                self.candidate.setCurrentIndex(max(0, index))
-            else:
-                for i, t in enumerate(tracks, 1):
-                    self.candidate.setItemText(i, f"P{t.id} • candidate {'uncertain' if t.identity_uncertain else 'visible'}")
+            self.update_candidates(tracks, captured_at)
         self.trajectory.update(tracks, captured_at)
         self.dashboard.preview.trajectory_segments = self.trajectory.segments
         if self.state != "capturing" or self.clock() >= self.deadline:
@@ -523,6 +558,7 @@ class MilestoneTools(QWidget):
         self.message("Live view selected. Camera stays paused until Start / Retry Camera.")
 
     def scene_changed(self):
+        self.reset_candidate_choices()
         self.stop_capture("Scene changed; no further samples collected. Previous data retained.")
         self.scene_review.setChecked(False)
         self.last_live_tracks = []
@@ -548,6 +584,7 @@ class MilestoneTools(QWidget):
         self.capture_candidate = self.capture_generation = self.capture_step = None
         self.saved_sample_count = 0
         self.state = "idle"
+        self.reset_candidate_choices()
         self.scene_review.setChecked(False)
         self.margin.setValue(0)
         self.show_zones()

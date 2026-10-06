@@ -215,3 +215,37 @@ def test_benchmark_scenes_come_only_from_explicit_cli(monkeypatch, capsys, flags
     if not flags:
         assert captured["full"] == SceneConfig()
     capsys.readouterr()
+
+
+def test_recent_loss_counts_distinguish_native_miss_from_head_rejection_and_expire():
+    scene = SceneConfig()
+    worker = PoseWorker(Path("unused.task"), scene)
+    def deliver(result, timestamp):
+        worker._active = (timestamp, scene, (0, 0, 100, 100), 100, 100, time.monotonic(), 0)
+        worker._callback(result, None, timestamp)
+    deliver(SimpleNamespace(pose_landmarks=[]), 100)
+    deliver(result_at(confidence=.1), 200)
+    deliver(result_at(), 300)
+    assert worker.stats.diagnostic_frames == 3
+    assert worker.stats.no_pose_frames == 1
+    assert worker.stats.rejected_head_frames == 1
+    assert worker.stats.accepted_heads == 1
+    deliver(result_at(), 10250)
+    assert worker.stats.diagnostic_frames == 2
+    assert worker.stats.no_pose_frames == worker.stats.rejected_head_frames == 0
+    assert worker.stats.completed == 4
+
+
+def test_scene_reset_and_late_callback_do_not_restore_old_loss_diagnostics():
+    scene = SceneConfig()
+    worker = PoseWorker(Path("unused.task"), scene)
+    worker._active = (100, scene, (0, 0, 100, 100), 100, 100, time.monotonic(), 0)
+    worker._callback(SimpleNamespace(pose_landmarks=[]), None, 100)
+    assert worker.stats.no_pose_frames == 1
+    worker.set_scene(scene)
+    assert worker.stats.diagnostic_frames == worker.stats.no_pose_frames == 0
+    worker._active = (200, scene, (0, 0, 100, 100), 100, 100, time.monotonic(), 0)
+    worker._callback(result_at(), None, 200)
+    assert worker.latest_result is None
+    assert worker.stats.diagnostic_frames == worker.stats.raw_poses == worker.stats.accepted_heads == 0
+    assert worker.stats.completed == 2

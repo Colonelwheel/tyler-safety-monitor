@@ -1,7 +1,8 @@
 """Local pose observations only; no risk decisions or caregiver classification."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from collections import deque
+from dataclasses import dataclass, replace
 import math
 import os
 from pathlib import Path
@@ -36,6 +37,11 @@ class PoseStats:
     submitted: int = 0
     completed: int = 0
     dropped: int = 0
+    raw_poses: int = 0
+    accepted_heads: int = 0
+    diagnostic_frames: int = 0
+    no_pose_frames: int = 0
+    rejected_head_frames: int = 0
 
 
 def observations_from_result(result, scene: SceneConfig, roi_pixels,
@@ -119,6 +125,7 @@ class PoseWorker:
         self._stopping = False
         self._latest = None
         self._stats = PoseStats()
+        self._diagnostic_frames = deque(maxlen=1024)
         self._error = ""
         self._last_timestamp = -1
         self._generation = 0
@@ -173,10 +180,12 @@ class PoseWorker:
             self._generation += 1
             # Results for the old crop must not be presented as current settings.
             self._latest = None
+            self._diagnostic_frames.clear()
+            self._stats = replace(self._stats, raw_poses=0, accepted_heads=0,
+                                  diagnostic_frames=0, no_pose_frames=0, rejected_head_frames=0)
             if self._pending is not None:
                 self._pending = None
-                self._stats = PoseStats(self._stats.submitted, self._stats.completed,
-                                        self._stats.dropped + 1)
+                self._stats = replace(self._stats, dropped=self._stats.dropped + 1)
 
     def submit(self, frame_bgr, timestamp_ms: int | None = None) -> bool:
         with self._condition:
@@ -187,7 +196,7 @@ class PoseWorker:
             timestamp = max(timestamp, self._last_timestamp + 1)
             self._last_timestamp = timestamp
             dropped = self._stats.dropped + (self._pending is not None)
-            self._stats = PoseStats(self._stats.submitted + 1, self._stats.completed, dropped)
+            self._stats = replace(self._stats, submitted=self._stats.submitted + 1, dropped=dropped)
             # The source is owned by capture; copy for safe asynchronous use.
             self._pending = (frame_bgr.copy(), timestamp, self._scene, self._generation)
             self._condition.notify_all()
@@ -211,9 +220,19 @@ class PoseWorker:
                 self._condition.notify_all()
                 return
             self._active = None
-            self._stats = PoseStats(self._stats.submitted, self._stats.completed + 1,
-                                    self._stats.dropped)
+            self._stats = replace(self._stats, completed=self._stats.completed + 1)
             if generation == self._generation and not self._stopping:
+                raw_count = len(result.pose_landmarks)
+                accepted_count = len(converted.observations)
+                # Counts and booleans only; no additional imagery or landmarks.
+                self._diagnostic_frames.append((timestamp_ms, raw_count == 0,
+                                                raw_count > 0 and accepted_count == 0))
+                while self._diagnostic_frames and timestamp_ms - self._diagnostic_frames[0][0] > 10000:
+                    self._diagnostic_frames.popleft()
+                self._stats = replace(self._stats, raw_poses=raw_count, accepted_heads=accepted_count,
+                                      diagnostic_frames=len(self._diagnostic_frames),
+                                      no_pose_frames=sum(frame[1] for frame in self._diagnostic_frames),
+                                      rejected_head_frames=sum(frame[2] for frame in self._diagnostic_frames))
                 self._latest = converted
             self._condition.notify_all()
             deliver = generation == self._generation and not self._stopping

@@ -108,3 +108,38 @@ application before retrying. A native library hang cannot be forcibly repaired
 inside a Python thread. There is no native process isolation in Milestone 0;
 separate process supervision belongs to the later watchdog milestone, and
 long-running recovery still needs supervised testing.
+
+
+## Exploratory head-focused comparison — October 5, 2026
+
+The live Full pose detector intermittently lost accepted heads even while Tyler
+was still at his tolerable nighttime lighting. Association/UI repairs do not
+establish native head-detection stability. Before changing the model or rejecting
+thresholds, use the in-memory last-ten-second counts to distinguish a native
+no-pose result from a pose whose head fails validation. Neither can be hidden by
+holding an old head position as current.
+
+An isolated read-only trial examined Google's [Face Detector guide](https://developers.google.com/edge/mediapipe/solutions/vision/face_detector),
+[Python API](https://developers.google.com/edge/mediapipe/solutions/vision/face_detector/python)
+and [BlazeFace Full Range model card](https://storage.googleapis.com/mediapipe-assets/MediaPipe%20BlazeFace%20Model%20Card%20%28Full%20Range%29.pdf).
+The official full-range artifact was downloaded only to fresh private scratch;
+no artifact is included in Git, no existing model was overwritten, and no Python
+package changed. Artifact SHA256:
+`3698b18f063835bc609069ef052228fbe86d9c9a6dc8dcb7c7c2d69aed2b181b`.
+This digest records tested bytes, not a publisher signature. The model card lists
+Apache 2.0 and limitations involving face orientation/size, low light and jitter.
+
+Three previously supplied dashboard screenshot previews were read without
+modification. Full and lower views returned zero faces in 10 repeated IMAGE
+inferences per view/sample. Exploratory closer crops with rotation returned a
+face in the night sample only at one tested orientation. That single transformed
+still result is not temporal validation or proof of a correctly associated
+person. All transforms were in memory; no imagery or coordinates were written.
+The source imagery remains outside Git. The app still uses Full pose only.
+
+A future live head-focused comparison should keep experimental observations
+separate from pose tracks, profile eligibility and danger decisions, map current
+coordinates back to the original frame, and record actual model/pipeline
+provenance for any subsequently approved collection. Do not relabel face
+confidence as pose visibility or safety confidence. Do not adopt a smaller ROI
+without reviewing coverage of separate people and usual head movements.
