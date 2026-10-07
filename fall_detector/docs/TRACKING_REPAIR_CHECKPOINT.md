@@ -1,7 +1,8 @@
 # Tracking repair checkpoint
 
-Updated October 6, 2026. Implementation has not started for the new persistent
-selection scope. Read this first after compaction, then AGENTS.md and the project
+Updated October 6, 2026. The notation-first checkpoint preceded all new source
+edits. Persistent selection implementation is now synthetically verified;
+ordinary Desktop live verification is pending. Read this first after compaction, then AGENTS.md and the project
 Markdown requirements. This checkpoint records authorized work, not a new
 milestone approval.
 
@@ -24,7 +25,8 @@ in this repair. Milestone 2 detection/threshold state machine remains unapproved
 
 Authoritative repository: C:\Codex Projects\Tyler Safety Monitor
 Branch: main; origin: https://github.com/Colonelwheel/tyler-safety-monitor.git
-Current committed HEAD: 38ab8e5 (live experimental 80 percent cutoff notes).
+Baseline before this repair: 38ab8e5 (experimental cutoff live notes).
+Notation-first checkpoint commit: 442b589. Use git log for the current HEAD.
 Tool cwd may still be the old OneDrive project. Use the authoritative path for
 all work; escalated shell permission is required outside the listed write roots.
 Retain C:\Users\Tyler\OneDrive\Documents\ChatGPT\Falling Video Detection as
@@ -119,3 +121,41 @@ written. Resume only after this file exists and the parent confirms it.
    no calibration capture/head movement required. Use Computer Use only during
    active UI inspection/actions, never coding/research/waits. Preserve camera
    imagery in memory only. If input guard blocks actions, ask minimal manual steps.
+
+## Implementation checkpoint, in progress
+
+The notation-first checkpoint was committed and pushed as 442b589 before source
+implementation. Draft source now adds SubjectSlot/SubjectState, explicit Use
+Selected Candidate as Tyler, a stable Tyler selector row, current-status display,
+selection-epoch capture locks, post-consent eligibility checks, and reset guards.
+Full pose observations and saved profile/feature schemas remain unchanged.
+Focused dashboard tests passed before the final additional review guard; a full
+suite and final review are still pending. No live app restart for this draft yet.
+
+Independent review reproduced an unsafe reassociation case: a previously visible
+second person could move into the missing subject's location and inherit the
+selection. The subject worker is adding bounded recent-other-person evidence
+and tests so such a gap requires manual reselection, including when that second
+person gets a new ID. The integration regression must prevent new calibration
+proposal points after this sequence. Do not commit source or claim completion
+until this guard, full tests, final review and privacy checks pass.
+
+
+## Latest status: source verification complete, live check pending
+
+SubjectSlot and the UI integration are implemented. The full isolated suite
+passed 323 tests. Recent-other-person evidence now prevents the reproduced
+caregiver-replacement sequence; both unchanged/new IDs and active-capture point
+isolation have regression coverage. Consent source/scene/comparison changes and
+loaded-profile isolation are also covered. No personal feature collection or
+runtime-data changes occurred during implementation. Source uses the original
+Full pose measurement; the face comparison remains diagnostic only.
+
+Final independent review passed with no remaining concrete source defect.
+Source/docs are ready for staged privacy review, commit and push. Next request
+an ordinary Desktop restart and explicitly select the
+visible P candidate with Use Selected Candidate as Tyler. No feature capture or
+head movement is needed. Verify the Tyler row remains designated across a
+supported P-ID change while missing/ambiguous states remain unavailable. Do not
+claim sustained tracking stability from synthetic tests. Update this checkpoint
+and handoff with the actual live result and any remaining limitation.

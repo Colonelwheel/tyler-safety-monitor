@@ -316,3 +316,53 @@ new measurement for existing profiles, or enable safety classification. No
 settings/profile save or feature capture was performed during this check.
 Further work should assess ordinary-position variation, false estimates and
 longer gaps before adopting any new tracking measurement.
+
+## Persistent Tyler selection — October 6, 2026
+
+Tyler approved this tracking/calibration repair after discussing temporary P-ID
+churn. It is not Milestone 2 or live caregiver detection. Calibration / Replay
+now provides **Use Selected Candidate as Tyler**. Choose a current unambiguous
+P candidate, then press that button. A stable Tyler selector row and status stay
+separate from the current P number. The preview labels only a fresh qualified
+head as Tyler / Pn. Selecting collects and saves no features.
+
+SubjectSlot is session-local position association, not biometric recognition.
+A missing head is never held forward. Short-gap attachment to a new P ID requires
+a sole clear candidate within 0.075 original-frame normalized distance of the
+last confirmed head, at least three fresh observations spanning 0.5 seconds,
+and supporting-observation gaps no longer than 0.4 seconds. Confirmation must
+finish within three seconds of the last confirmed observation. Empty batches
+stay unavailable; short empty intervals do not manufacture observations or
+prevent later supported confirmation. Same-ID motion remains bounded by 0.15;
+capture freshness is at most 0.4 seconds. These are diagnostic association
+policies, not accepted safety thresholds or accuracy guarantees.
+
+Uncertainty, nearby competition, unsupported movement, a longer absence or
+recent second-person evidence during a gap requires explicit reselection. A
+single timestamp keeps recent other-candidate evidence bounded. It prevents a
+previously observed second person, including one with a new ID, from inheriting
+Tyler's slot by moving to the last head position. Position continuity still
+cannot exclude every undetected replacement or persistent false estimate;
+this is not validated caregiver/person recognition.
+
+Capture locks the designation epoch, camera generation, scene, dimensions and
+unchanged Full-pose provenance. Missing/confirming frames can remain raw replay
+gap evidence but contribute no subject proposal points. A reselection-required
+state stops capture and retains previous data. Eligibility is rechecked after
+the consent dialog, since observations continue while it is open. Manual
+retargeting with existing features requires New Session; camera pause/restart,
+scene edits, replay entry and New Session invalidate the live designation.
+Loading a saved profile never establishes who is currently visible. Existing
+profile/feature schemas and saved files are unchanged. Experimental face
+comparison remains separate and must stop before feature capture.
+
+All 323 synthetic tests passed. Coverage includes temporary-ID reattachment,
+stale/invalid time, missing/uncertain states, long gaps, competing-person
+replacement, epoch isolation, post-consent source/scene/comparison changes,
+loaded-profile isolation and reset behavior. Independent review reproduced the
+second-person replacement defect during development; the recent-other guard and
+unit/integration regressions address it. An ordinary Desktop live selection
+check is pending. Genuine native-pose gaps, alternate-model validation and
+caregiver coverage remain unresolved; no safety timers, audio suppression or
+alerts are enabled. The notation-first checkpoint is
+fall_detector/docs/TRACKING_REPAIR_CHECKPOINT.md (initial commit 442b589).

@@ -173,6 +173,9 @@ def ready_tools(window, monkeypatch):
     window.tools.candidate.addItem("P1", 1)
     window.tools.candidate.setCurrentIndex(1)
     window.tools.scene_review.setChecked(True)
+    window.tools.assign_subject()
+    assert window.tools.subject.state.selected
+    assert window.tools.candidate.currentData() == "tyler"
     window.tools.confirm = lambda *args: True
     return window.tools, clock, provenance
 
@@ -197,24 +200,34 @@ def test_capture_delay_stop_and_limit_preserve_original_timestamps(window, monke
     tools, clock, _ = ready_tools(window, monkeypatch)
     tools.request_capture()
     obs = PoseObservation((0.5, 0.5), None, 0.9)
-    result = SimpleNamespace(timestamp_ms=105010, observations=(obs,))
-    track = Track(1, obs.head, None, .9, 105, 105)
-    tools.observe(result, [track], 1, 104.98)
+    # Keep observing during the visible delay, as the real camera does.
+    for index in range(1, 20):
+        at = 100 + index * .25
+        clock.value = at
+        tools.observe(SimpleNamespace(timestamp_ms=round(at * 1000), observations=(obs,)),
+                      [Track(1, obs.head, None, .9, at, 100)], index, at)
+    clock.value = 104.98
+    tools.observe(SimpleNamespace(timestamp_ms=104980, observations=(obs,)),
+                  [Track(1, obs.head, None, .9, 104.98, 100)], 20, 104.98)
     assert tools.samples == []
     clock.value = 105
     tools.tick()
     assert tools.state == "capturing"
-    tools.observe(result, [track], 2, 104.99)
+    tools.observe(SimpleNamespace(timestamp_ms=104990, observations=(obs,)),
+                  [Track(1, obs.head, None, .9, 104.99, 100)], 21, 104.99)
     assert tools.samples == []  # Late inference captured during delay rejected.
-    tools.observe(result, [track], 3, 105.01)
+    clock.value = 105.01
+    tools.observe(SimpleNamespace(timestamp_ms=105010, observations=(obs,)),
+                  [Track(1, obs.head, None, .9, 105.01, 100)], 22, 105.01)
     assert tools.samples[0].timestamp == 105.01
     assert tools.samples[0].inference_timestamp_ms == 105010
     assert tools.samples[0].capture_step == "ordinary"
+    assert tools.points["safe"] == [obs.head]
     assert "CAPTURING" in window.capture_banner.text()
     clock.value = 120
     tools.tick()
     assert tools.state == "review" and len(tools.samples) == 1
-    assert tools.step.isEnabled()
+    assert tools.step.isEnabled() and tools.assign_subject_button.isEnabled()
 
 
 def test_native_minimize_and_hide_end_collection_but_keep_processing(window, monkeypatch, application):
@@ -274,17 +287,24 @@ def test_new_session_cancels_pending_zone_edit_and_never_deletes_saved_files(win
     assert tools.profile is None
 
 
-def test_switching_candidate_or_camera_requires_new_calibration_session(window, monkeypatch):
+def test_switching_subject_or_camera_requires_new_calibration_session(window, monkeypatch):
     tools, _, _ = ready_tools(window, monkeypatch)
     tools.request_capture()
     tools.stop_capture()
     tools.samples = [FeatureSample(100, 1, (PoseObservation((.5, .5), None, .9),))]
+    selected_epoch = tools.subject.state.selection_epoch
     tools.candidate.addItem("P2", 2)
-    tools.candidate.setCurrentIndex(2)
+    tools.candidate.setCurrentIndex(tools.candidate.findData(2))
     tools.last_live_tracks = [Track(2, (.6, .5), None, .9, 100, 100)]
+    tools.assign_subject()
+    assert tools.subject.state.selection_epoch == selected_epoch
+    assert "New Session" in tools.status.text() and len(tools.samples) == 1
+    # Defense in depth even if designation changed outside the disabled UI.
+    tools.subject.select(tools.last_live_tracks, 2, 100)
     tools.request_capture()
-    assert tools.state == "review" and "different person candidate" in tools.status.text()
-    tools.candidate.setCurrentIndex(1)
+    assert tools.state == "review" and "different Tyler selection" in tools.status.text()
+    tools.subject.select([Track(1, (.5, .5), None, .9, 100, 100)], 1, 100)
+    tools.capture_subject_epoch = tools.subject.state.selection_epoch
     tools.last_live_tracks = [Track(1, (.5, .5), None, .9, 100, 100)]
     window._capture_generation += 1
     tools.request_capture()
@@ -795,3 +815,150 @@ def test_experimental_score_change_invalidates_only_comparison_overlay(window):
     assert window.preview.tracks == [track] and window.settings == settings
     assert window.tools.samples == []
     assert "waiting for fresh estimates" in window.head_status.text()
+
+
+def observe_subject(tools, clock, at, tracks, frame_index):
+    clock.value = at
+    observations = tuple(PoseObservation(t.head, t.shoulders, t.confidence) for t in tracks)
+    tools.observe(SimpleNamespace(timestamp_ms=round(at * 1000), observations=observations),
+                  tracks, frame_index, at)
+
+
+def test_tyler_alias_survives_new_p_id_without_fake_missing_head(window, monkeypatch):
+    tools, clock, _ = ready_tools(window, monkeypatch)
+    epoch = tools.subject.state.selection_epoch
+    observe_subject(tools, clock, 100.2, [], 1)
+    assert tools.candidate.currentData() == "tyler"
+    assert "not reliably located" in tools.subject_status.text()
+    assert window.preview.subject_track_id is None
+    for index, at in enumerate((101.3, 101.55, 101.8), 2):
+        observe_subject(tools, clock, at, [Track(7, (.51, .51), None, .9, at, at)], index)
+    assert tools.subject.state.selection_epoch == epoch
+    assert tools.subject.state.track_id == 7
+    assert tools.candidate.currentData() == "tyler"
+    assert "P7" in tools.candidate.currentText() and window.preview.subject_track_id == 7
+    assert tools.samples == []
+
+
+def test_capture_points_follow_resolved_subject_epoch_only(window, monkeypatch):
+    tools, clock, _ = ready_tools(window, monkeypatch)
+    tools.request_capture()
+    # Test the capture phase directly without changing its consent/epoch lock.
+    tools.state, tools.deadline = "capturing", 115
+    observe_subject(tools, clock, 100.2, [Track(1, (.5, .5), None, .9, 100.2, 100)], 1)
+    observe_subject(tools, clock, 100.4, [], 2)
+    assert tools.points["safe"] == [(.5, .5)]
+    assert len(tools.samples) == 2 and tools.samples[1].observations == ()
+    for index, at in enumerate((101.5, 101.75, 102.0), 3):
+        observe_subject(tools, clock, at, [Track(7, (.51, .51), None, .9, at, at)], index)
+    assert tools.points["safe"] == [(.5, .5), (.51, .51)]
+    assert tools.capture_subject_epoch == tools.subject.state.selection_epoch
+    assert len(tools.samples) == 5 and tools.state == "capturing"
+    # A different person during a gap stops capture instead of retargeting.
+    observe_subject(tools, clock, 102.2, [Track(9, (.8, .5), None, .9, 102.2, 102.2)], 6)
+    assert tools.state == "review" and len(tools.samples) == 5
+    assert tools.points["safe"] == [(.5, .5), (.51, .51)]
+    assert "cannot be reassociated" in tools.status.text()
+
+
+def test_capture_consent_rechecks_subject_and_camera_state(window, monkeypatch):
+    tools, clock, _ = ready_tools(window, monkeypatch)
+    def vanished(*args):
+        observe_subject(tools, clock, 100.2, [], 1)
+        return True
+    tools.confirm = vanished
+    tools.request_capture()
+    assert tools.state == "idle" and tools.samples == [] and tools.capture_provenance is None
+    assert "changed during confirmation" in tools.status.text()
+    # A fresh explicit choice does not bypass camera failure during consent.
+    tools.last_live_tracks = [Track(2, (.5, .5), None, .9, 100.2, 100.2)]
+    tools.subject.select(tools.last_live_tracks, 2, 100.2)
+    def camera_fault(*args):
+        window.capture.metrics.state = "FAULT"
+        return True
+    tools.confirm = camera_fault
+    tools.request_capture()
+    assert tools.state == "idle" and tools.capture_provenance is None
+    assert "Camera observations changed" in tools.status.text()
+
+
+def test_selection_is_invalidated_by_new_session_scene_and_pause(window, monkeypatch):
+    tools, _, _ = ready_tools(window, monkeypatch)
+    old_epoch = tools.subject.state.selection_epoch
+    tools.new_session()
+    assert not tools.subject.state.selected and tools.subject.state.selection_epoch > old_epoch
+    assert window.preview.subject_track_id is None and tools.candidate.findData("tyler") < 0
+    tools.subject.select(tools.last_live_tracks, 1, 100)
+    window.set_scene(SceneConfig(Rect(.1, .1, .8, .8)))
+    assert not tools.subject.state.selected
+    tools.last_live_tracks = [Track(1, (.5, .5), None, .9, 100, 100)]
+    tools.subject.select(tools.last_live_tracks, 1, 100)
+    window.pause_camera()
+    assert not tools.subject.state.selected and window.preview.subject_track_id is None
+
+
+def test_stale_and_ambiguous_subject_never_qualifies_capture(window, monkeypatch):
+    tools, clock, _ = ready_tools(window, monkeypatch)
+    clock.value = 100.5
+    tools.tick()
+    assert window.preview.subject_track_id is None
+    tools.request_capture()
+    assert tools.state == "idle" and "currently visible" in tools.status.text()
+    at = 100.6
+    observe_subject(tools, clock, at, [Track(1, (.5, .5), None, .9, at, 100,
+                    identity_uncertain=True, uncertainty_reasons=("duplicate heads",))], 1)
+    assert tools.subject.state.status == "reselection_required"
+    tools.request_capture()
+    assert tools.state == "idle" and tools.samples == []
+
+
+def test_recent_second_person_cannot_take_capture_subject_after_gap(window, monkeypatch):
+    tools, clock, _ = ready_tools(window, monkeypatch)
+    tools.request_capture()
+    tools.state, tools.deadline = "capturing", 115
+    epoch = tools.capture_subject_epoch
+    observe_subject(tools, clock, 100.1, [
+        Track(1, (.5,.5), None, .9, 100.1, 100),
+        Track(2, (.9,.5), None, .9, 100.1, 100.1)], 1)
+    assert tools.points["safe"] == [(.5,.5)]
+    observe_subject(tools, clock, 100.2, [], 2)
+    assert tools.state == "review"
+    retained = len(tools.samples)
+    for index, at in enumerate((100.3, 100.55, 100.8), 3):
+        observe_subject(tools, clock, at, [Track(2, (.52,.5), None, .9, at, 100.1)], index)
+    assert tools.subject.state.status == "reselection_required"
+    assert tools.subject.state.selection_epoch == epoch
+    assert tools.points["safe"] == [(.5,.5)] and len(tools.samples) == retained
+    assert window.preview.subject_track_id is None
+
+
+@pytest.mark.parametrize("change", ["scene", "camera", "comparison"])
+def test_capture_consent_cannot_outlive_source_or_comparison_change(window, monkeypatch, change):
+    tools, _, _ = ready_tools(window, monkeypatch)
+    def changed_during_consent(*args):
+        if change == "scene":
+            window.set_scene(SceneConfig(Rect(.1,.1,.8,.8)))
+        elif change == "camera":
+            window.capture = FakeCapture()
+            window._capture_generation += 1
+        else:
+            window._head_enabled = True
+        return True
+    tools.confirm = changed_during_consent
+    tools.request_capture()
+    assert tools.state == "idle" and tools.samples == []
+    assert tools.capture_provenance is None and tools.capture_subject_epoch is None
+    assert "changed during confirmation" in tools.status.text()
+
+
+def test_loaded_profile_does_not_select_tyler_or_allow_additional_capture(window, monkeypatch):
+    tools, _, provenance = ready_tools(window, monkeypatch)
+    tools.subject.reset()
+    tools.profile = CalibrationProfile(window.settings.scene, provenance,
+                    {"expected_person": Rect(.4,.4,.2,.2)})
+    tools.loaded_profile = True
+    tools.refresh_subject_status()
+    tools.request_capture()
+    assert not tools.subject.state.selected
+    assert tools.state == "idle" and tools.samples == []
+    assert "Loaded profile remains available for review" in tools.status.text()

@@ -243,3 +243,19 @@ old estimates and counters; Full pose tracking and saved calibration remain
 unchanged. The status distinguishes score-only rejection from other missing
 estimates. Inspect the magenta estimate locations: a false pillow estimate can
 keep a no-face counter at zero. Higher cutoffs also risk dropping genuine heads.
+
+### Select Tyler independently of temporary P IDs
+
+In Calibration / Replay, choose your current visible P candidate and press
+**Use Selected Candidate as Tyler**. The Tyler row stays selected through
+supported short-gap P-ID changes. Its status shows visible, missing, checking a
+returning candidate, or requiring reselection. Missing or uncertain detections
+cannot supply calibration points; a longer gap or competing person requires a
+fresh explicit selection. No features are collected by selecting Tyler.
+
+This designation is for the current camera/scene session. Pause/restart, scene
+changes, replay and New Session clear it. Saved profiles remain intact; opening
+a profile does not automatically identify the person in view. Existing unsaved
+features require New Session before changing designation. Stop the experimental
+comparison before an independently approved feature capture. This association
+is based on observed position continuity and does not prove personal identity.

@@ -37,6 +37,7 @@ class Preview(QWidget):
         self.frame_ratio = 16 / 9
         self.trajectory_segments = {}
         self.comparison_heads = ()
+        self.subject_track_id = None
         self.zones = {}
         self.reviewed_zones = set()
 
@@ -98,7 +99,8 @@ class Preview(QWidget):
             painter.drawEllipse(QRectF(x - 9, y - 9, 18, 18))
             painter.setPen(QPen(QColor("#ffd66e" if track.identity_uncertain else "#66dbff"), 3))
             identity = " ID uncertain" if track.identity_uncertain else ""
-            painter.drawText(int(x + 14), int(y), f"P{track.id}{identity}  {track.confidence:.0%}")
+            name = f"Tyler / P{track.id}" if track.id == self.subject_track_id else f"P{track.id}"
+            painter.drawText(int(x + 14), int(y), f"{name}{identity}  {track.confidence:.0%}")
             for point, scores in zip(track.landmarks, getattr(track, "landmark_scores", ())):
                 confidence = min(scores)
                 # Never render invisible inferred limbs as confirmed landmarks.
@@ -752,6 +754,7 @@ class Dashboard(QMainWindow):
             self.tracking_status.setText("Tracking unavailable: no current pose result. Previous positions are not held.")
             self.preview.tracks = []
             self.tools.last_live_tracks = []
+            self.tools.refresh_subject_status()
             self.tools.trajectory.clear()
             self.preview.trajectory_segments = {}
             if self.tools.state in {"delay", "capturing"}:

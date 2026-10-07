@@ -27,6 +27,7 @@ from .replay import (
 from .scene import SceneConfig
 from .settings import data_directory
 from .tracking import PersonTracker, PoseObservation
+from .subject import SubjectSlot
 
 
 STEPS = {
@@ -59,7 +60,8 @@ class MilestoneTools(QWidget):
         self.steps_taken = []
         self.capture_scene = None
         self.capture_dimensions = None
-        self.capture_candidate = None
+        self.capture_subject_epoch = None
+        self.subject = SubjectSlot()
         self.capture_generation = None
         self.capture_provenance = None
         self.loaded_profile = False
@@ -103,6 +105,12 @@ class MilestoneTools(QWidget):
         self.candidate.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
         self.candidate.setMinimumContentsLength(18)
         layout.addWidget(self.candidate)
+        self.assign_subject_button = self.add_button(layout, "Use Selected Candidate as Tyler", self.assign_subject)
+        self.subject_status = QLabel("Tyler is not selected. Choose your current candidate, then use it as Tyler.")
+        self.subject_status.setWordWrap(True)
+        self.subject_status.setAccessibleName("Tyler selection status")
+        layout.addWidget(self.subject_status)
+        layout.addWidget(QLabel("Your Tyler selection stays separate from temporary P numbers. Missing or uncertain detections cannot supply calibration points."))
         self.add_button(layout, "Start Feature Capture", self.request_capture)
         self.stop_button = self.add_button(layout, "Stop / Review Capture", self.stop_capture)
         self.status = QLabel("No capture started. Five-second delay, then at most 15 seconds. Images are not saved.")
@@ -178,6 +186,59 @@ class MilestoneTools(QWidget):
                                     QMessageBox.StandardButton.No,
                                     QMessageBox.StandardButton.No) == QMessageBox.StandardButton.Yes
 
+    def assign_subject(self):
+        if self.state in {"delay", "capturing"}:
+            self.message("Stop / Review capture before selecting Tyler.")
+            return
+        if self.samples:
+            self.message("Existing features retained. Save them, then choose New Session before changing the Tyler selection.")
+            return
+        d = self.dashboard
+        if self.player is not None or d.capture is None or d.pose is None or d.capture.snapshot().state != "LIVE":
+            self.message("Select Tyler from the live camera; no selection changed.")
+            return
+        chosen = self.candidate.currentData()
+        if chosen == "tyler":
+            self.message("Tyler is already selected. Choose a current P candidate to make a new designation.")
+            return
+        matches = [track for track in self.last_live_tracks if track.id == chosen]
+        if len(matches) != 1 or not 0 <= self.clock() - matches[0].last_seen <= .4:
+            self.message("Choose a currently visible candidate. The previous Tyler selection is retained.")
+            return
+        try:
+            self.subject.select(self.last_live_tracks, chosen, matches[0].last_seen)
+        except ValueError as error:
+            self.message(f"Tyler selection unchanged: {error}")
+            return
+        self.refresh_subject_status()
+        self.candidate.setCurrentIndex(self.candidate.findData("tyler"))
+        self.message("Tyler selected for this camera session. Detection gaps remain visible; no features were collected or saved.")
+
+    def refresh_subject_status(self):
+        state = self.subject.state
+        track = self.subject.eligible(self.last_live_tracks, self.clock())
+        if not state.selected:
+            label = "Tyler is not selected. Choose a current candidate, then use it as Tyler."
+        elif track is not None:
+            label = f"Tyler selected • current P{track.id} • head visible"
+        elif state.status == "confirming":
+            label = "Tyler selected • checking a returning candidate • unavailable for capture"
+        elif state.status == "reselection_required":
+            label = "Tyler selected • choose a current candidate again • unavailable for capture"
+        else:
+            label = "Tyler selected • not reliably located • unavailable for capture"
+        self.subject_status.setText(label)
+        self.subject_status.setToolTip(state.reason)
+        self.dashboard.preview.subject_track_id = track.id if track is not None else None
+        index = self.candidate.findData("tyler")
+        if state.selected:
+            if index < 0:
+                self.candidate.insertItem(1, label, "tyler")
+            elif self.candidate.itemText(index) != label:
+                self.candidate.setItemText(index, label)
+        elif index >= 0:
+            self.candidate.removeItem(index)
+
     def request_capture(self):
         if self.state in {"delay", "capturing"}:
             return
@@ -194,13 +255,13 @@ class MilestoneTools(QWidget):
         if d.capture.snapshot().state != "LIVE" or not getattr(d.pose, "ready", False):
             self.message("Wait for live camera and ready pose worker. No capture started.")
             return
-        selected = self.candidate.currentData()
-        tracks = [t for t in self.last_live_tracks if t.id == selected and not t.identity_uncertain]
-        if not self.scene_review.isChecked() or len(tracks) != 1:
-            self.message("Review the fixed camera/masks and choose a currently visible, unambiguous person candidate first.")
+        selected = self.subject.state.selection_epoch
+        track = self.subject.eligible(self.last_live_tracks, self.clock())
+        if not self.scene_review.isChecked() or track is None:
+            self.message("Review the fixed camera/masks and use a currently visible, unambiguous candidate as Tyler first.")
             return
-        if self.samples and selected != self.capture_candidate:
-            self.message("This session uses a different person candidate. Save it, then choose New Session before changing candidates.")
+        if self.samples and selected != self.capture_subject_epoch:
+            self.message("This session uses a different Tyler selection. Save it, then choose New Session before changing selections.")
             return
         metrics = d.capture.snapshot()
         dimensions = (metrics.actual_width, metrics.actual_height)
@@ -210,13 +271,28 @@ class MilestoneTools(QWidget):
             self.message("Scene or camera session changed. Existing unsaved data retained; save it, then choose New Session before collecting more.")
             return
         step = self.step.currentData()
+        scene, generation, camera, pose = d.settings.scene, d._capture_generation, d.capture, d.pose
         if not self.confirm("Approve this feature-only capture?",
                 f"{STEPS[step]}\n\nAfter a visible five-second delay, collect up to 15 seconds of local pose coordinates and confidence scores in memory. Stop / Review ends early. No photographs, video or audio are saved.\n\nSaving later requires another confirmation and creates new files under {data_directory() / 'calibration'}. Assisted and caregiver captures remain pending. Proceed only when ready."):
             return
-        self.capture_scene = d.settings.scene
+        # Native observations and camera state can change while consent is open.
+        if (d.capture is not camera or d.pose is not pose or d.comparison_active
+                or self.player is not None or not self.scene_review.isChecked()
+                or scene != d.settings.scene or generation != d._capture_generation
+                or self.step.currentData() != step
+                or self.subject.state.selection_epoch != selected
+                or self.subject.eligible(self.last_live_tracks, self.clock()) is None):
+            self.message("Camera, scene, or Tyler visibility changed during confirmation. No capture started; existing features retained.")
+            return
+        current_metrics = camera.snapshot()
+        if (current_metrics.state != "LIVE" or not getattr(pose, "ready", False)
+                or dimensions != (current_metrics.actual_width, current_metrics.actual_height)):
+            self.message("Camera observations changed during confirmation. No capture started.")
+            return
+        self.capture_scene = scene
         self.capture_dimensions = dimensions
-        self.capture_candidate = selected
-        self.capture_generation = d._capture_generation
+        self.capture_subject_epoch = selected
+        self.capture_generation = generation
         if self.capture_provenance is None:
             try:
                 dependencies = {n: importlib.metadata.version(n) for n in ("mediapipe", "PySide6", "opencv-contrib-python")}
@@ -232,10 +308,16 @@ class MilestoneTools(QWidget):
         self.deadline = self.clock() + 5
         self.step.setEnabled(False)
         self.candidate.setEnabled(False)
+        self.assign_subject_button.setEnabled(False)
         self.message("Capture delay • 5 seconds • Stop / Review cancels. No movement required yet.")
 
     def tick(self):
+        self.refresh_subject_status()
         now = self.clock()
+        if self.state in {"delay", "capturing"} and (
+                self.subject.state.selection_epoch != self.capture_subject_epoch
+                or self.subject.state.status == "reselection_required"):
+            self.stop_capture("Tyler selection requires review; previous features retained.")
         if self.state == "delay":
             if now >= self.deadline:
                 self.state = "capturing"
@@ -253,12 +335,15 @@ class MilestoneTools(QWidget):
             self.state = "review"
             self.step.setEnabled(True)
             self.candidate.setEnabled(True)
+            self.assign_subject_button.setEnabled(True)
             self.message(f"Capture stopped. {len(self.samples)} feature samples retained in memory. Review proposals before saving. {reason if isinstance(reason, str) else ''}")
 
     def reset_candidate_choices(self):
+        self.subject.reset()
         self._candidate_seen.clear()
         self.candidate.clear()
         self.candidate.addItem("Choose your person candidate", None)
+        self.refresh_subject_status()
 
     def update_candidates(self, tracks, captured_at):
         """Update keyed rows instead of rebuilding a popup on each native result.
@@ -273,13 +358,13 @@ class MilestoneTools(QWidget):
             self._candidate_seen[id_] = captured_at
         retained = {id_ for id_, seen in self._candidate_seen.items()
                     if id_ == selected or captured_at - seen <= 1}
-        if selected is not None:
+        if selected is not None and selected != "tyler":
             retained.add(selected)
         blocked = self.candidate.blockSignals(True)
         try:
             for index in range(self.candidate.count() - 1, 0, -1):
                 id_ = self.candidate.itemData(index)
-                if id_ not in retained:
+                if id_ != "tyler" and id_ not in retained:
                     self.candidate.removeItem(index)
             for id_ in sorted(retained):
                 index = self.candidate.findData(id_)
@@ -295,6 +380,12 @@ class MilestoneTools(QWidget):
 
     def observe(self, result, tracks, frame_index, captured_at):
         self.last_live_tracks = tracks
+        self.subject.update(tracks, result.timestamp_ms / 1000)
+        self.refresh_subject_status()
+        if self.state in {"delay", "capturing"} and (
+                self.subject.state.selection_epoch != self.capture_subject_epoch
+                or self.subject.state.status == "reselection_required"):
+            self.stop_capture("Tyler cannot be reassociated reliably; previous features retained.")
         if self.state not in {"delay", "capturing"}:
             self.update_candidates(tracks, captured_at)
         self.trajectory.update(tracks, captured_at)
@@ -312,10 +403,10 @@ class MilestoneTools(QWidget):
         self.samples.append(FeatureSample(captured_at, frame_index, tuple(result.observations), result.timestamp_ms, self.capture_step))
         if self.capture_step not in self.steps_taken:
             self.steps_taken.append(self.capture_step)
-        eligible = [t for t in tracks if t.id == self.capture_candidate and not t.identity_uncertain]
-        if len(eligible) == 1:
+        eligible = self.subject.eligible(tracks, self.clock())
+        if eligible is not None and self.subject.state.selection_epoch == self.capture_subject_epoch:
             name = "intentional_lean" if self.capture_step == "intentional_lean" else "safe"
-            self.points[name].append(eligible[0].head)
+            self.points[name].append(eligible.head)
 
     def ensure_profile(self):
         if self.profile is not None:
@@ -584,7 +675,7 @@ class MilestoneTools(QWidget):
         self.loaded_profile = False
         self.loaded_model_hash = None
         self.capture_scene = self.capture_dimensions = self.capture_provenance = None
-        self.capture_candidate = self.capture_generation = self.capture_step = None
+        self.capture_subject_epoch = self.capture_generation = self.capture_step = None
         self.saved_sample_count = 0
         self.state = "idle"
         self.reset_candidate_choices()
