@@ -185,6 +185,9 @@ class MilestoneTools(QWidget):
             self.message("Loaded profile remains available for review. Choose New Session before collecting additional data.")
             return
         d = self.dashboard
+        if d.comparison_active:
+            self.message("Stop the experimental head comparison before calibration. No capture started; existing features retained.")
+            return
         if self.player is not None or d.capture is None or d.pose is None:
             self.message("Start the live camera and pose worker before calibration. No capture started.")
             return

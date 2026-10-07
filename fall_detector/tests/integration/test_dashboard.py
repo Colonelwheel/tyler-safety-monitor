@@ -703,3 +703,77 @@ def test_unselected_missing_candidate_expires_and_scene_clears_selection(window)
     tools.candidate.setCurrentIndex(tools.candidate.findData(2))
     tools.scene_changed()
     assert tools.candidate.currentData() is None and tools.candidate.count() == 1
+
+
+class FakeHeadComparison:
+    def __init__(self):
+        self.is_alive = True
+        self.ready = True
+        self.error = ""
+        self.latest_result = SimpleNamespace(timestamp_ms=100000, heads=((.3,.4,.8),))
+        self.stats = SimpleNamespace(diagnostic_frames=3, no_face_frames=1, completed=3, dropped=0)
+        self.scenes = []
+        self.closed = False
+    def set_scene(self, scene):
+        self.scenes.append(scene)
+        self.latest_result = None
+    def close(self):
+        self.closed = True
+        self.is_alive = False
+        return True
+
+
+def test_comparison_overlay_remains_separate_and_expires_without_holding_head(window, monkeypatch):
+    worker = FakeHeadComparison()
+    window.head_comparison = worker
+    window._head_enabled = True
+    window.preview.tracks = [Track(7,(.5,.5),None,.9,100,100)]
+    monkeypatch.setattr(ui.time, "monotonic", lambda: 100.5)
+    window.refresh_head_comparison(True)
+    assert window.preview.comparison_heads == ((.3,.4,.8),)
+    assert window.preview.tracks[0].id == 7
+    assert "3 samples" in window.head_status.text() and "no face 1" in window.head_status.text()
+    monkeypatch.setattr(ui.time, "monotonic", lambda: 102)
+    window.refresh_head_comparison(True)
+    assert window.preview.comparison_heads == ()
+    assert window.preview.tracks[0].id == 7
+    worker.error = "comparison fault"
+    window.refresh_head_comparison(True)
+    assert window.preview.comparison_heads == () and "comparison fault" in window.head_status.text()
+
+
+def test_head_comparison_blocks_feature_capture_and_never_prompts_to_save(window, monkeypatch):
+    window._head_preparing = True
+    monkeypatch.setattr(window.tools, "confirm", lambda *a: pytest.fail("capture consent must not be reached"))
+    window.tools.request_capture()
+    assert window.tools.state == "idle" and not window.tools.samples
+    assert "Stop the experimental head comparison" in window.tools.status.text()
+
+
+def test_head_comparison_stops_on_pause_and_forwards_scene_generation(window, application):
+    worker = FakeHeadComparison()
+    window.head_comparison = worker
+    window._head_enabled = True
+    window.preview.comparison_heads = ((.3,.4,.8),)
+    scene = SceneConfig(Rect(.2,.2,.7,.7))
+    window.set_scene(scene)
+    assert worker.scenes == [scene] and window.preview.comparison_heads == ()
+    window.pause_camera()
+    wait_for(application, lambda: worker.closed)
+    assert not window._head_enabled and not window.comparison_active
+    assert window.preview.comparison_heads == ()
+
+
+def test_late_preparation_completion_cannot_start_after_stop(window):
+    window._head_preparing = True
+    window._head_request = 1
+    window.stop_head_comparison()
+    window.finish_head_preparation(1, Path("unused-experimental.tflite"))
+    assert window.head_comparison is None and not window._head_enabled
+
+
+def test_running_or_hung_comparison_cannot_be_replaced(window):
+    window.head_comparison = FakeHeadComparison()
+    window.start_head_comparison()
+    assert "unfinished worker cannot be replaced" in window.head_status.text()
+    assert not window._head_preparing

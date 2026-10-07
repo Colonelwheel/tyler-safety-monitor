@@ -223,3 +223,16 @@ dashboard then loaded saved settings and completed live pose inference. Retained
 cached originals remain untouched. Verify physical handle paths in the actual user
 launch before diagnosing another apparent missing file or collecting real features;
 a successful agent-spawned check alone is insufficient. See the handoff for details.
+
+
+### Experimental head comparison
+
+Camera / Masks has **Start Experimental Head Comparison** and **Stop Head
+Comparison**. Comparison is off by default. Start explicitly downloads a reviewed
+~1.1 MB Google face model into a separate local models file if missing; existing
+files are never replaced, and normal startup never downloads anything. The
+background comparison uses the current masks, runs at at most 2 samples/second,
+and shows magenta current face estimates independently of Full pose IDs. It
+writes no imagery/features and makes no identity or safety decisions. Calibration
+capture is blocked until comparison is stopped. This experiment is not a proven
+nighttime detection fix; inspect estimate locations and cadence, not just counts.

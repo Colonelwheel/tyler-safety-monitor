@@ -143,3 +143,24 @@ coordinates back to the original frame, and record actual model/pipeline
 provenance for any subsequently approved collection. Do not relabel face
 confidence as pose visibility or safety confidence. Do not adopt a smaller ROI
 without reviewing coverage of separate people and usual head movements.
+
+
+The optional live comparison is now implemented, off by default, using the above
+verified artifact. **Start Experimental Head Comparison** explicitly prepares
+one separate local model if missing and starts the diagnostic worker; normal
+startup downloads nothing. Each sample scans the masked ROI plus nine generic
+overlapping half-size tiles at 0/+30/-30 degrees. Scan/submission rate is capped
+at two per second; current estimates are spatially suppressed and bounded to 16.
+The worker uses the nose keypoint (or unavailable-keypoint box centre), reverses
+rotation/crop, and rejects original-scene exclusions and rotation padding. Face
+confidence remains a different measurement from pose landmark visibility.
+
+A native smoke test of this implemented worker on the three supplied screenshot
+previews returned one estimate per sample with 141–156 ms scans. The night sample's
+estimate fell outside the expected head region. Do not treat the count of one as
+successful recognition of Tyler. The separate magenta overlay allows an ordinary
+Desktop live comparison of location, gaps, false estimates and CPU/cadence cost.
+No experimental detections are used by pose association, profile/feature saving
+or danger decisions. Feature capture is disabled while comparison is preparing,
+running or still stopping; Stop Head Comparison restores the ordinary workflow
+once the worker has stopped. Existing calibration provenance is unchanged.

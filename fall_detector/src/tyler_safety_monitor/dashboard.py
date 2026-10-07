@@ -36,6 +36,7 @@ class Preview(QWidget):
         self.geometry_available = False
         self.frame_ratio = 16 / 9
         self.trajectory_segments = {}
+        self.comparison_heads = ()
         self.zones = {}
         self.reviewed_zones = set()
 
@@ -109,6 +110,11 @@ class Preview(QWidget):
                 sx = area.x() + track.shoulders[0] * area.width()
                 sy = area.y() + track.shoulders[1] * area.height()
                 painter.drawLine(int(x), int(y), int(sx), int(sy))
+        for hx, hy, score in self.comparison_heads:
+            x, y = area.x() + hx * area.width(), area.y() + hy * area.height()
+            painter.setPen(QPen(QColor("#ef96ff"), 3))
+            painter.drawRect(QRectF(x - 8, y - 8, 16, 16))
+            painter.drawText(int(x + 12), int(y + 18), f"Face test {score:.0%}")
         if self.pending_corner:
             x = area.x() + self.pending_corner[0] * area.width()
             y = area.y() + self.pending_corner[1] * area.height()
@@ -133,6 +139,7 @@ def button(label: str, callback) -> QPushButton:
 
 
 class Dashboard(QMainWindow):
+    head_model_prepared = Signal(object, object)
     cleanup_finished = Signal(object, object, bool, bool)
 
     def __init__(self, model_path: Path, enable_camera: bool = True) -> None:
@@ -143,6 +150,13 @@ class Dashboard(QMainWindow):
         self.model_path = model_path
         self.capture = None
         self.pose = None
+        self.head_comparison = None
+        self._head_enabled = False
+        self._head_preparing = False
+        self._head_prepare_thread = None
+        self._head_cleanup_thread = None
+        self._head_request = 0
+        self.head_model_prepared.connect(self.finish_head_preparation)
         self.sound = TestSound()
         self.tracker = PersonTracker()
         self.last_sequence = -1
@@ -250,6 +264,11 @@ class Dashboard(QMainWindow):
         self.tracking_status = QLabel("Tracking diagnostics: no live results")
         self.tracking_status.setWordWrap(True)
         controls.addWidget(self.tracking_status)
+        self.head_status = QLabel("Experimental face comparison is off. Start downloads a verified Google model (~1.1 MB) if missing, into the local models folder. Magenta squares are current face estimates only; no identity or safety decisions. Calibration capture is disabled during comparison. No imagery is saved.")
+        self.head_status.setWordWrap(True)
+        controls.addWidget(self.head_status)
+        controls.addWidget(button("Start Experimental Head Comparison", self.start_head_comparison))
+        controls.addWidget(button("Stop Head Comparison", self.stop_head_comparison))
         self.minimize_button = button("Minimize to Tray", self.minimize_dashboard)
         controls.addWidget(self.minimize_button)
         controls.addWidget(button("Exit Application", QApplication.instance().quit))
@@ -413,6 +432,7 @@ class Dashboard(QMainWindow):
             self.pose_status.setText("Pose model missing. Download it explicitly using the documented model command.")
 
     def pause_camera(self) -> None:
+        self.stop_head_comparison()
         self.tools.stop_capture("Camera paused; previously collected features remain in memory.")
         self.tools.last_live_tracks = []
         self.tools.reset_candidate_choices()
@@ -522,6 +542,9 @@ class Dashboard(QMainWindow):
         self._pose_inputs.clear()
         if self.pose is not None:
             self.pose.set_scene(scene)
+        self.preview.comparison_heads = ()
+        if self.head_comparison is not None:
+            self.head_comparison.set_scene(scene)
         self.tools.scene_changed()
         self.preview.update()
 
@@ -566,6 +589,83 @@ class Dashboard(QMainWindow):
         except (OSError, ValueError, RuntimeError) as error:
             self.settings_status.setText(f"Settings were not saved: {error}")
 
+    @property
+    def comparison_active(self):
+        return (self._head_preparing or self._head_enabled
+                or getattr(self.head_comparison, "is_alive", False)
+                or (self._head_prepare_thread is not None and self._head_prepare_thread.is_alive()))
+
+    def start_head_comparison(self):
+        if self.comparison_active or (self._head_cleanup_thread is not None and self._head_cleanup_thread.is_alive()):
+            self.head_status.setText("Comparison is running or still stopping. Stop it first; an unfinished worker cannot be replaced.")
+            return
+        if self.tools.state in {"delay", "capturing"}:
+            self.head_status.setText("Stop / Review calibration before a comparison. Existing features remain unchanged.")
+            return
+        if self.capture is None or self.tools.player is not None or self.capture.snapshot().state != "LIVE":
+            self.head_status.setText("Start the live camera before a head comparison.")
+            return
+        self._head_request += 1
+        request = self._head_request
+        self._head_preparing = True
+        self.head_status.setText("Preparing the explicit experimental model download if missing; existing files are never replaced. Calibration capture is disabled.")
+        def prepare():
+            try:
+                from .head_model import prepare_head_model
+                result = prepare_head_model()
+            except Exception as error:
+                result = type(error).__name__
+            self.head_model_prepared.emit(request, result)
+        self._head_prepare_thread = threading.Thread(target=prepare, name="head-model-preparation", daemon=True)
+        self._head_prepare_thread.start()
+
+    def finish_head_preparation(self, request, result):
+        if request != self._head_request or not self._head_preparing or self.shut_down:
+            return
+        self._head_preparing = False
+        if not isinstance(result, Path):
+            self.head_status.setText(f"Experimental model preparation failed ({result}); existing files were preserved. Comparison did not start.")
+            return
+        if self.capture is None or self.tools.player is not None:
+            return
+        from .head_comparison import HeadComparator
+        self.head_comparison = HeadComparator(result, self.settings.scene)
+        self._head_enabled = True
+        self.head_comparison.start()
+        self.head_status.setText("Experimental face comparison initializing; Full pose tracks stay separate. Calibration capture is disabled.")
+
+    def stop_head_comparison(self):
+        self._head_request += 1
+        self._head_preparing = False
+        self._head_enabled = False
+        self.preview.comparison_heads = ()
+        worker = self.head_comparison
+        if worker is not None and (self._head_cleanup_thread is None or not self._head_cleanup_thread.is_alive()):
+            self._head_cleanup_thread = threading.Thread(target=worker.close, name="head-comparison-cleanup", daemon=True)
+            self._head_cleanup_thread.start()
+        if hasattr(self, "head_status"):
+            self.head_status.setText("Head comparison stopping/off. Full pose observations remain separate; no experimental features were saved.")
+        self.preview.update()
+
+    def refresh_head_comparison(self, camera_live):
+        worker = self.head_comparison
+        if not self._head_enabled or worker is None:
+            return
+        error = worker.error
+        result = worker.latest_result
+        if (not camera_live or error or result is None
+                or not 0 <= time.monotonic() - result.timestamp_ms / 1000 <= 1):
+            self.preview.comparison_heads = ()
+        else:
+            self.preview.comparison_heads = result.heads
+        stats = worker.stats
+        detail = error or ("running" if worker.ready else "initializing")
+        self.head_status.setText(
+            f"Experimental face comparison {detail}: last 10s ({stats.diagnostic_frames} samples), "
+            f"no face {stats.no_face_frames}; completed {stats.completed}, queue replacements {stats.dropped}. "
+            "Magenta squares are current face estimates; Full pose IDs/counters stay separate. "
+            "Samples are capped at 2 FPS and are not an accuracy score. Calibration capture is disabled; no imagery is saved.")
+
     def refresh(self) -> None:
         self.tools.tick()
         if self.tools.render_replay():
@@ -593,6 +693,8 @@ class Dashboard(QMainWindow):
         if packet is not None and packet.sequence != self.last_sequence and metrics.state == "LIVE":
             self.last_sequence = packet.sequence
             self.preview.set_frame(packet.image)
+            if self._head_enabled and self.head_comparison is not None:
+                self.head_comparison.submit(packet.image, int(packet.captured_at * 1000))
             if self.pose is not None:
                 self._model_timestamp = max(int(packet.captured_at * 1000), self._model_timestamp + 1)
                 if self.pose.submit(packet.image, self._model_timestamp):
@@ -629,6 +731,7 @@ class Dashboard(QMainWindow):
                 + f"no native pose {getattr(stats, 'no_pose_frames', 0)}, "
                 + f"pose present but head rejected {getattr(stats, 'rejected_head_frames', 0)}. "
                 + self.tracker.diagnostics.summary())
+        self.refresh_head_comparison(metrics.state == "LIVE")
         if metrics.state != "LIVE" or time.monotonic() - self.last_pose_seen_at > 1.0:
             self.tracking_status.setText("Tracking unavailable: no current pose result. Previous positions are not held.")
             self.preview.tracks = []
@@ -648,4 +751,6 @@ class Dashboard(QMainWindow):
         if self._cleanup_thread is not None:
             # Exiting may wait for bounded cleanup; ordinary controls never do.
             self._cleanup_thread.join(timeout=3.5)
+        if self._head_cleanup_thread is not None:
+            self._head_cleanup_thread.join(timeout=1.5)
         self.tray.hide()

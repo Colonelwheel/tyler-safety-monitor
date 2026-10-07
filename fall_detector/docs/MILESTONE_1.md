@@ -286,3 +286,54 @@ replacement for Full. No alternative detector is enabled in the application.
 Model/pipeline changes must preserve provenance and must not silently make old
 profiles operational under a different measurement. See docs/MODELS.md for
 source and limitations. Milestone 2 remains unapproved.
+
+
+## Optional head-focused comparison — October 6, 2026
+
+The tracking-repair approval included evaluating a head-focused detector if Full
+kept losing the head. The new Camera / Masks actions **Start Experimental Head
+Comparison** and **Stop Head Comparison** provide that separate diagnostic. It
+is off on normal startup and never replaces Full pose tracks or assigns person
+IDs. Magenta squares show current face estimates and face-model scores; they are
+not pose visibility or safety confidence. Feature capture is blocked during
+preparation/comparison. Existing profiles and feature files remain untouched.
+
+The explicit Start action downloads the reviewed Google BlazeFace Full Range
+artifact (~1.1 MB) only if its separate local model file is missing. SHA256 and
+TFLite format are checked before an exclusive create. Existing bytes are validated
+read-only; unexpected bytes or a changed remote digest fail visibly without
+replacement. No download occurs during normal app startup. The ordinary Desktop
+process performs acquisition in its own runtime namespace, avoiding inference
+about file visibility from Codex's redirected AppData view.
+
+A background worker scans the currently masked ROI and generic overlapping tiles
+at zero and +/-30-degree rotations, with submissions and scans capped at two per
+second. Coordinates are mapped back through inverse rotation and rounded ROI
+bounds, then checked against the original scene/masks. Diagnostic proximity
+suppression and a 16-estimate bound do not establish person count or identity.
+There is one active scan and one replaceable copied pending frame; no imagery or
+experimental coordinates are saved. Current-scene counts expire after ten
+seconds. Scene edits discard old results. Pause/replay stop comparison, late
+preparation cannot restart it, and a hung worker remains referenced and blocks
+replacement. Missing, stale or faulted estimates disappear from the overlay.
+
+All 256 synthetic tests passed, including acquisition preservation, inverse
+mapping, masks, rate/queue bounds, old-scene results, native timeout/close,
+separate overlays and blocked capture. Independent review found no concrete
+privacy/thread/data regression. A native worker smoke test on the three previously
+supplied screenshot previews produced one diagnostic estimate per sample in
+approximately 141–156 ms per 30-view scan. The night estimate was outside the
+expected head region; the trial therefore does not establish useful nighttime
+head recognition. Its purpose is comparison, not a proven repair. Live CPU cost,
+pose cadence, false detections and sustained detection must be checked separately.
+
+Tyler's additional object masks temporarily appeared to reduce ID churn. Short
+native no-pose counts fluctuated, including a zero-miss window followed by a
+93/132-miss window, and Tyler reported that ID churn returned. The nightstand
+hypothesis remains plausible but unconfirmed. At his explicit request he saved
+the current masks as a new settings revision; earlier revisions and calibration
+files were retained. Treat these masks as experimental. A masked caregiver head
+cannot be detected in that area; review caregiver coverage and distinguish loss
+of visibility from confirmed departure before operational use. Actual caregiver
+participation remains deferred to supervised validation. No live safety logic or
+Milestone 2 work is enabled by this comparison.
