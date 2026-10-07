@@ -360,4 +360,25 @@ All 271 synthetic tests passed, including cutoff validation, 79% rejection and
 94% retention at 80%, stale-result invalidation, counter expiration and UI
 isolation. Independent review found no concrete regression. No new imagery,
 personal calibration features, or safety decisions were recorded or enabled.
-Milestone 2 remains unapproved. Live verification of the new cutoff is pending.
+Milestone 2 remains unapproved. The ordinary Desktop cutoff check below is complete; sustained tracking remains unverified.
+### Ordinary Desktop check at 80%
+
+After the user restarted the usual Desktop shortcut, the new selector showed
+80% and the comparison ran without a model warning. Two unobstructed live
+previews showed a magenta estimate on the head, approximately 89% and 90%,
+with no additional pillow estimate visible in either preview. Three recent
+qualification counters read 3/19, 0/19, and 1/19 missing samples; the gaps were
+score-only rejections. Full pose still reported 73/133, 54/129, and 77/130
+native no-pose results. These are differently sampled diagnostic windows, not
+identity accuracy measurements. Camera delivery remained approximately 14 FPS,
+with zero read failures/reconnects and no comparison queue replacements.
+
+The third screenshot was occluded by another window; only its accessibility
+counters could be checked. No continuous visual correctness was established.
+Leave 80% as the current experimental starting point; 90% could reject the
+valid approximately 89% head estimate. The comparison remains separate from
+Full association, so this check does not resolve cyan-ID churn, authorize a
+new measurement for existing profiles, or enable safety classification. No
+settings/profile save or feature capture was performed during this check.
+Further work should assess ordinary-position variation, false estimates and
+longer gaps before adopting any new tracking measurement.
