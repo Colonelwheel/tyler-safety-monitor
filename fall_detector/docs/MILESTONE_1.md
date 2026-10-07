@@ -264,9 +264,16 @@ The Camera / Masks panel includes ten-second model counts distinguishing no
 native pose from a native pose with all heads rejected by validation. Counts and
 booleans are bounded in memory; no images, additional coordinates or logs are
 saved. Scene edits clear these counts, and late old-scene callbacks cannot refill
-them. The latest model-count and incremental-selector changes require a fresh
-ordinary Desktop launch for live verification. All 227 synthetic tests passed;
-independent review found no concrete regression in association or selection.
+them. A fresh ordinary Desktop launch on October 6 loaded the new counters.
+Two ten-second windows had 52/129 and 81/132 native no-pose results respectively,
+with zero pose-present/head-rejected results in both. Camera delivery stayed
+13.8–14.0 FPS with no read failures or inference skips. Calibration was idle.
+These short windows establish that the observed remaining gaps came from native
+pose absence, not the application head filter. They are not accuracy estimates.
+Tyler reported that the behavior seemed quite a lot better after the ID/display
+repair; that subjective improvement does not establish stable head detection.
+All 227 synthetic tests passed; independent review found no concrete regression
+in association, selection or current-scene diagnostic counters.
 
 A read-only exploratory Google BlazeFace Full Range trial used three previously
 supplied dashboard screenshots, cropping/rotating only in memory. A new official
