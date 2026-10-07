@@ -164,3 +164,10 @@ No experimental detections are used by pose association, profile/feature saving
 or danger decisions. Feature capture is disabled while comparison is preparing,
 running or still stopping; Stop Head Comparison restores the ordinary workflow
 once the worker has stopped. Existing calibration provenance is unchanged.
+
+The experimental score selector offers 50% (baseline), 80%, and 90%. Scores are
+not probabilities of matching a person. Changing the session-only cutoff clears
+old estimates and counters; Full pose tracking and saved calibration remain
+unchanged. The status distinguishes score-only rejection from other missing
+estimates. Inspect the magenta estimate locations: a false pillow estimate can
+keep a no-face counter at zero. Higher cutoffs also risk dropping genuine heads.

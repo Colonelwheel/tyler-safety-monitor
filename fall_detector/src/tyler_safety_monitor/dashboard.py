@@ -267,6 +267,14 @@ class Dashboard(QMainWindow):
         self.head_status = QLabel("Experimental face comparison is off. Start downloads a verified Google model (~1.1 MB) if missing, into the local models folder. Magenta squares are current face estimates only; no identity or safety decisions. Calibration capture is disabled during comparison. No imagery is saved.")
         self.head_status.setWordWrap(True)
         controls.addWidget(self.head_status)
+        controls.addWidget(QLabel("Experimental face score cutoff • not match accuracy"))
+        self.face_score = QComboBox()
+        for label, value in (("50% (comparison baseline)", .5), ("80%", .8), ("90%", .9)):
+            self.face_score.addItem(label, value)
+        self.face_score.setMinimumHeight(50)
+        self.face_score.setAccessibleName("Experimental face score cutoff")
+        self.face_score.currentIndexChanged.connect(self.change_face_score)
+        controls.addWidget(self.face_score)
         controls.addWidget(button("Start Experimental Head Comparison", self.start_head_comparison))
         controls.addWidget(button("Stop Head Comparison", self.stop_head_comparison))
         self.minimize_button = button("Minimize to Tray", self.minimize_dashboard)
@@ -629,10 +637,17 @@ class Dashboard(QMainWindow):
         if self.capture is None or self.tools.player is not None:
             return
         from .head_comparison import HeadComparator
-        self.head_comparison = HeadComparator(result, self.settings.scene)
+        self.head_comparison = HeadComparator(result, self.settings.scene, min_score=self.face_score.currentData())
         self._head_enabled = True
         self.head_comparison.start()
         self.head_status.setText("Experimental face comparison initializing; Full pose tracks stay separate. Calibration capture is disabled.")
+
+    def change_face_score(self):
+        self.preview.comparison_heads = ()
+        if self.head_comparison is not None:
+            self.head_comparison.set_min_score(self.face_score.currentData())
+        self.head_status.setText("Experimental score cutoff changed; waiting for fresh estimates. Full pose tracks and saved calibration are unchanged.")
+        self.preview.update()
 
     def stop_head_comparison(self):
         self._head_request += 1
@@ -661,8 +676,9 @@ class Dashboard(QMainWindow):
         stats = worker.stats
         detail = error or ("running" if worker.ready else "initializing")
         self.head_status.setText(
-            f"Experimental face comparison {detail}: last 10s ({stats.diagnostic_frames} samples), "
-            f"no face {stats.no_face_frames}; completed {stats.completed}, queue replacements {stats.dropped}. "
+            f"Experimental face comparison {detail}, score cutoff {self.face_score.currentData():.0%}: "
+            f"last 10s ({stats.diagnostic_frames} samples), no qualifying face {stats.no_face_frames} "
+            f"(score-rejected only {getattr(stats, 'low_score_frames', 0)}); completed {stats.completed}, queue replacements {stats.dropped}. "
             "Magenta squares are current face estimates; Full pose IDs/counters stay separate. "
             "Samples are capped at 2 FPS and are not an accuracy score. Calibration capture is disabled; no imagery is saved.")
 

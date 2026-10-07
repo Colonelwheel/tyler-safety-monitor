@@ -732,7 +732,7 @@ def test_comparison_overlay_remains_separate_and_expires_without_holding_head(wi
     window.refresh_head_comparison(True)
     assert window.preview.comparison_heads == ((.3,.4,.8),)
     assert window.preview.tracks[0].id == 7
-    assert "3 samples" in window.head_status.text() and "no face 1" in window.head_status.text()
+    assert "3 samples" in window.head_status.text() and "no qualifying face 1" in window.head_status.text()
     monkeypatch.setattr(ui.time, "monotonic", lambda: 102)
     window.refresh_head_comparison(True)
     assert window.preview.comparison_heads == ()
@@ -777,3 +777,21 @@ def test_running_or_hung_comparison_cannot_be_replaced(window):
     window.start_head_comparison()
     assert "unfinished worker cannot be replaced" in window.head_status.text()
     assert not window._head_preparing
+
+
+def test_experimental_score_change_invalidates_only_comparison_overlay(window):
+    changes = []
+    worker = FakeHeadComparison()
+    worker.set_min_score = changes.append
+    window.head_comparison = worker
+    window._head_enabled = True
+    window.preview.comparison_heads = ((.3,.4,.79),)
+    track = Track(7,(.5,.5),None,.9,100,100)
+    window.preview.tracks = [track]
+    settings = window.settings
+    window.face_score.setCurrentIndex(1)
+    assert changes == [.8]
+    assert window.preview.comparison_heads == ()
+    assert window.preview.tracks == [track] and window.settings == settings
+    assert window.tools.samples == []
+    assert "waiting for fresh estimates" in window.head_status.text()

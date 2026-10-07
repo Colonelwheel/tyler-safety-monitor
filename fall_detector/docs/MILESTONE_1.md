@@ -337,3 +337,27 @@ cannot be detected in that area; review caregiver coverage and distinguish loss
 of visibility from confirmed departure before operational use. Actual caregiver
 participation remains deferred to supervised validation. No live safety logic or
 Milestone 2 work is enabled by this comparison.
+
+## Experimental score filtering — October 6, 2026
+
+The separate face comparison now offers 50% (baseline), 80%, and 90% score
+cutoffs. These are detector scores, not probabilities of matching Tyler or
+being safe. The default remains 50%; this session-only control does not change
+Full pose thresholds, settings revisions, identity association, or calibration.
+Changing the cutoff clears current overlays, pending results and recent counts;
+old in-flight results cannot appear under the new cutoff. A score-rejected-only
+counter distinguishes batches that had mapped estimates but none above the
+cutoff from other batches without a qualifying face.
+
+An ordinary Desktop live view at 50% showed an estimate near Tyler's head and
+an additional approximately 79% estimate over a pillow. Zero no-face samples
+therefore did not establish continuous recognition of Tyler. Camera delivery
+remained approximately 14 FPS without read failures; Full pose still had native
+no-pose gaps. An 80% cutoff needs a fresh live location check: rejecting the
+pillow estimate alone does not prove that genuine head estimates remain usable.
+
+All 271 synthetic tests passed, including cutoff validation, 79% rejection and
+94% retention at 80%, stale-result invalidation, counter expiration and UI
+isolation. Independent review found no concrete regression. No new imagery,
+personal calibration features, or safety decisions were recorded or enabled.
+Milestone 2 remains unapproved. Live verification of the new cutoff is pending.

@@ -236,3 +236,10 @@ and shows magenta current face estimates independently of Full pose IDs. It
 writes no imagery/features and makes no identity or safety decisions. Calibration
 capture is blocked until comparison is stopped. This experiment is not a proven
 nighttime detection fix; inspect estimate locations and cadence, not just counts.
+
+The experimental score selector offers 50% (baseline), 80%, and 90%. Scores are
+not probabilities of matching a person. Changing the session-only cutoff clears
+old estimates and counters; Full pose tracking and saved calibration remain
+unchanged. The status distinguishes score-only rejection from other missing
+estimates. Inspect the magenta estimate locations: a false pillow estimate can
+keep a no-face counter at zero. Higher cutoffs also risk dropping genuine heads.

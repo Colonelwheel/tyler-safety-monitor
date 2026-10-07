@@ -326,7 +326,7 @@ def test_scan_start_rate_cap_survives_an_immediate_pending_frame(monkeypatch):
     native_fakes(monkeypatch, detector)
     starts = []
 
-    def scan(_detector, _mp, _frame, timestamp, _scene, generation):
+    def scan(_detector, _mp, _frame, timestamp, _scene, generation, _min_score):
         starts.append(time.monotonic())
         return HeadComparisonResult(timestamp, (), 0, generation)
 
@@ -341,4 +341,119 @@ def test_scan_start_rate_cap_survives_an_immediate_pending_frame(monkeypatch):
     worker.submit(np.zeros((2, 2, 3), np.uint8), 101)
     wait_until(lambda: worker.stats.completed == 2)
     assert starts[1] - starts[0] >= .49
+    assert worker.close()
+
+
+def test_adjustable_cutoff_rejects_79_and_preserves_94_without_changing_native_floor(monkeypatch):
+    detector = Detector(output=NS(detections=[
+        detection(x=.2, score=.79), detection(x=.8, score=.94),
+    ]))
+    native_fakes(monkeypatch, detector)
+    vision = sys.modules["mediapipe.tasks.python"].vision
+    captured = {}
+    vision.FaceDetectorOptions = lambda **kwargs: captured.update(kwargs) or kwargs
+    monkeypatch.setattr(comparison, "comparison_views", lambda crop: [
+        (crop, (0, 0, crop.shape[1], crop.shape[0]), np.eye(2, 3)),
+    ])
+    worker = HeadComparator("unused", SceneConfig(), min_score=.8)
+    worker.start()
+    wait_until(lambda: worker.ready)
+    worker.submit(np.zeros((20, 40, 3), np.uint8), 100)
+    wait_until(lambda: worker.stats.completed == 1)
+    assert captured["min_detection_confidence"] == .5
+    assert worker.min_score == .8
+    assert worker.latest_result.heads == ((.8, .5, .94),)
+    assert worker.latest_result.below_cutoff_heads == 1
+    assert worker.stats.no_face_frames == worker.stats.low_score_frames == 0
+    assert worker.close()
+
+
+def test_score_change_invalidates_pending_old_result_and_recent_counts():
+    scene = SceneConfig(Rect(.1, .1, .8, .8))
+    worker = HeadComparator("unused", scene)
+    worker._thread = FakeThread()
+    worker._finish(HeadComparisonResult(100, (), 1, 0, 1))
+    worker.submit(np.zeros((2, 2, 3), np.uint8), 101)
+    assert worker._pending[-1] == .5
+    assert worker.stats.low_score_frames == 1
+    worker.set_min_score(.8)
+    assert worker.min_score == .8
+    assert worker._scene is scene
+    assert worker._generation == 1
+    assert worker._pending is None
+    assert worker.latest_result is None
+    assert worker.stats.no_face_frames == worker.stats.low_score_frames == 0
+    assert worker.stats.diagnostic_frames == 0
+    assert worker.stats.dropped == 1
+    worker._finish(HeadComparisonResult(102, ((.5, .5, .79),), 1, 0))
+    assert worker.latest_result is None
+    assert worker.stats.diagnostic_frames == 0
+    worker._finish(HeadComparisonResult(103, ((.5, .5, .94),), 1, 1))
+    assert worker.latest_result.heads == ((.5, .5, .94),)
+    # Setting an unchanged cutoff preserves current results and counts.
+    current = worker.latest_result
+    worker.set_min_score(.8)
+    assert worker.latest_result is current
+    assert worker.stats.diagnostic_frames == 1
+    assert worker._generation == 1
+
+
+@pytest.mark.parametrize("invalid", [True, False, None, "0.8", .49, 1.01,
+                                     float("nan"), float("inf"), -float("inf"),
+                                     10 ** 1000])
+def test_invalid_cutoff_rejected_before_any_mutation(invalid):
+    with pytest.raises(ValueError):
+        HeadComparator("unused", SceneConfig(), min_score=invalid)
+    worker = HeadComparator("unused", SceneConfig())
+    worker._thread = FakeThread()
+    worker._finish(HeadComparisonResult(100, (), 1, 0, 1))
+    worker.submit(np.zeros((2, 2, 3), np.uint8), 101)
+    before = worker.stats
+    pending, current = worker._pending, worker.latest_result
+    with pytest.raises(ValueError):
+        worker.set_min_score(invalid)
+    assert worker.min_score == .5
+    assert worker._generation == 0
+    assert worker._pending is pending
+    assert worker.latest_result is current
+    assert worker.stats is before
+
+
+def test_no_qualifying_face_counts_separate_score_only_gaps_and_expire():
+    worker = HeadComparator("unused", SceneConfig(), min_score=.8)
+    worker._finish(HeadComparisonResult(100, (), 1, 0, 2))
+    worker._finish(HeadComparisonResult(200, (), 1, 0, 0))
+    worker._finish(HeadComparisonResult(300, ((.5, .5, .94),), 1, 0, 1))
+    assert worker.stats.diagnostic_frames == 3
+    assert worker.stats.no_face_frames == 2
+    assert worker.stats.low_score_frames == 1
+    worker._finish(HeadComparisonResult(10200, (), 1, 0, 1))
+    assert worker.stats.diagnostic_frames == 3
+    assert worker.stats.no_face_frames == 2
+    assert worker.stats.low_score_frames == 1
+    worker.set_scene(SceneConfig())
+    assert worker.stats.no_face_frames == worker.stats.low_score_frames == 0
+    assert worker.stats.diagnostic_frames == 0
+
+
+def test_cutoff_change_during_scan_cannot_publish_old_low_score_estimates(monkeypatch):
+    entered, release = threading.Event(), threading.Event()
+
+    class BlockingDetector(Detector):
+        def detect(self, _image):
+            entered.set()
+            assert release.wait(2)
+            return NS(detections=[detection(score=.79)])
+
+    native_fakes(monkeypatch, BlockingDetector())
+    worker = HeadComparator("unused", SceneConfig())
+    worker.start()
+    wait_until(lambda: worker.ready)
+    worker.submit(np.zeros((20, 40, 3), np.uint8), 100)
+    assert entered.wait(1)
+    worker.set_min_score(.8)
+    release.set()
+    wait_until(lambda: worker._active_at is None)
+    assert worker.latest_result is None
+    assert worker.stats.diagnostic_frames == worker.stats.low_score_frames == 0
     assert worker.close()

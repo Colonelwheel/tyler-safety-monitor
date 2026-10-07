@@ -20,6 +20,7 @@ class HeadComparisonResult:
     heads: tuple[tuple[float, float, float], ...]
     latency_ms: float
     scene_generation: int = 0
+    below_cutoff_heads: int = 0
 
 
 @dataclass(frozen=True)
@@ -29,6 +30,7 @@ class HeadComparisonStats:
     dropped: int = 0
     no_face_frames: int = 0
     diagnostic_frames: int = 0
+    low_score_frames: int = 0
 
 
 def comparison_views(cropped):
@@ -105,6 +107,13 @@ def deduplicate_heads(heads):
     return tuple(kept)
 
 
+def _validated_min_score(value):
+    if (isinstance(value, bool) or not isinstance(value, (int, float))
+            or not .5 <= value <= 1 or not math.isfinite(value)):
+        raise ValueError("comparison minimum score must be finite and between 0.5 and 1")
+    return float(value)
+
+
 class HeadComparator:
     """IMAGE face worker, capped at two submitted frames per second.
 
@@ -112,7 +121,8 @@ class HeadComparator:
     Initialization and inference faults are evaluated on status reads, allowing
     the UI to remain responsive even when the native thread is stuck.
     """
-    def __init__(self, model_path: str | Path, scene: SceneConfig):
+    def __init__(self, model_path: str | Path, scene: SceneConfig, min_score=.5):
+        self._min_score = _validated_min_score(min_score)
         self.model_path = Path(model_path)
         self._scene = scene
         self._condition = threading.Condition()
@@ -180,13 +190,27 @@ class HeadComparator:
             self._thread = threading.Thread(target=self._run, name="head-comparison", daemon=True)
             self._thread.start()
 
+    @property
+    def min_score(self):
+        with self._condition:
+            return self._min_score
+
+    def set_min_score(self, value):
+        value = _validated_min_score(value)
+        with self._condition:
+            if value != self._min_score:
+                self._min_score = value
+                # Changing qualification must invalidate old and in-flight results.
+                self.set_scene(self._scene)
+
     def set_scene(self, scene):
         with self._condition:
             self._scene = scene
             self._generation += 1
             self._latest = None
             self._diagnostic_frames.clear()
-            self._stats = replace(self._stats, no_face_frames=0, diagnostic_frames=0)
+            self._stats = replace(self._stats, no_face_frames=0, diagnostic_frames=0,
+                                  low_score_frames=0)
             if self._pending is not None:
                 self._pending = None
                 self._stats = replace(self._stats, dropped=self._stats.dropped + 1)
@@ -210,7 +234,8 @@ class HeadComparator:
             self._last_submit_at = now
             self._stats = replace(self._stats, submitted=self._stats.submitted + 1,
                                   dropped=self._stats.dropped + (self._pending is not None))
-            self._pending = (frame.copy(), timestamp, self._scene, self._generation)
+            self._pending = (frame.copy(), timestamp, self._scene, self._generation,
+                             self._min_score)
             self._condition.notify_all()
             return True
 
@@ -221,15 +246,17 @@ class HeadComparator:
             if (result.scene_generation == self._generation
                     and not self._stopping and not self._error):
                 self._latest = result
-                self._diagnostic_frames.append((result.timestamp_ms, not result.heads))
+                self._diagnostic_frames.append((result.timestamp_ms, not result.heads,
+                                                not result.heads and result.below_cutoff_heads > 0))
                 while (self._diagnostic_frames and
                        result.timestamp_ms - self._diagnostic_frames[0][0] > 10000):
                     self._diagnostic_frames.popleft()
                 self._stats = replace(
                     self._stats, diagnostic_frames=len(self._diagnostic_frames),
-                    no_face_frames=sum(entry[1] for entry in self._diagnostic_frames))
+                    no_face_frames=sum(entry[1] for entry in self._diagnostic_frames),
+                    low_score_frames=sum(entry[2] for entry in self._diagnostic_frames))
 
-    def _scan(self, detector, mp, frame, timestamp, scene, generation):
+    def _scan(self, detector, mp, frame, timestamp, scene, generation, min_score):
         import cv2
         started = time.monotonic()
         cropped, roi = scene.prepare_frame(frame)
@@ -248,8 +275,11 @@ class HeadComparator:
         # A final native call might itself return after the deadline.
         if self.error:
             return None
-        return HeadComparisonResult(timestamp, deduplicate_heads(heads),
-                                    (time.monotonic() - started) * 1000, generation)
+        mapped = deduplicate_heads(heads)
+        qualifying = tuple(head for head in mapped if head[2] >= min_score)
+        return HeadComparisonResult(timestamp, qualifying,
+                                    (time.monotonic() - started) * 1000, generation,
+                                    len(mapped) - len(qualifying))
 
     def _run(self):
         try:
@@ -280,10 +310,10 @@ class HeadComparator:
                             self._condition.wait(timeout=remaining)
                             continue
                         self._last_scan_at = now
-                        frame, timestamp, scene, generation = self._pending
+                        frame, timestamp, scene, generation, min_score = self._pending
                         self._pending = None
                         self._active_at = time.monotonic()
-                    result = self._scan(detector, mp, frame, timestamp, scene, generation)
+                    result = self._scan(detector, mp, frame, timestamp, scene, generation, min_score)
                     if result is not None:
                         self._finish(result)
                     else:
