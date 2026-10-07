@@ -2,7 +2,8 @@
 
 Updated October 6, 2026. The notation-first checkpoint preceded all new source
 edits. Persistent selection implementation is now synthetically verified;
-ordinary Desktop live verification is pending. Read this first after compaction, then AGENTS.md and the project
+the basic ordinary Desktop selection check is now verified, while a live
+new-ID reattachment remains unobserved. Read this first after compaction, then AGENTS.md and the project
 Markdown requirements. This checkpoint records authorized work, not a new
 milestone approval.
 
@@ -175,3 +176,37 @@ After ready, inspect only the monitor window to check current designation,
 missing/confirming states and supported P-ID change. Do not treat another
 person's unobserved real visit as a verified detection result; the competing
 person finding above was synthetic. Keep masks/settings/private files intact.
+
+
+### Ordinary Desktop selection check
+
+The user restarted the usual Desktop shortcut and explicitly designated the
+current P candidate as Tyler. The new controls and selected Tyler row were
+visible. Three point-in-time checks retained the Tyler designation; the row
+showed current P2/head visible on accessibility reads, and the unobstructed
+preview also showed the explicit not-reliably-located/unavailable state during
+a gap. Subsequent reads returned to current P2 without a new designation.
+Camera delivery was approximately 13.4-14.2 FPS with zero read failures,
+reconnects or pose submissions skipped. Calibration stayed idle with zero
+samples. No capture, setting save, profile save, movement instruction or new
+personal feature collection occurred.
+
+No P-number change was observed in these checks. Supported new-ID reattachment
+therefore remains verified by synthetic tests, not this live session. The final
+screenshot was occluded, so its counters/selector text cannot independently
+verify the head position. The basic live selection check confirms the new
+interface and visible missing-data behavior; it does not establish continuous
+correct head tracking, personal identity or caregiver recognition. Genuine pose
+loss and alternative-model validation remain open before operational thresholds.
+
+
+## Next unresolved verification
+
+Source remains 942873a; checkpoint/handoff documentation has been updated after
+the Desktop check. The Tyler row stayed selected through missing/visible states
+but the observed current ID remained P2. Do not request a movement to force an
+ID change or continuously spend Computer Use while waiting. If natural churn
+occurs later, inspect the current selection and whether it confirms the new P
+number or correctly requires reselection. A long gap or competing-person
+condition requiring reselection is intentional, not proof that every ID should
+be accepted. No Milestone 2 approval or new capture is implied by this check.

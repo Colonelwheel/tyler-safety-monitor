@@ -427,8 +427,30 @@ stale/invalid time, missing/uncertain states, long gaps, competing-person
 replacement, epoch isolation, post-consent source/scene/comparison changes,
 loaded-profile isolation and reset behavior. Independent review reproduced the
 second-person replacement defect during development; the recent-other guard and
-unit/integration regressions address it. An ordinary Desktop live selection
-check is pending. Genuine native-pose gaps, alternate-model validation and
+unit/integration regressions address it. The basic ordinary Desktop selection check below is complete;
+new-ID reattachment was not observed live. Genuine native-pose gaps, alternate-model validation and
 caregiver coverage remain unresolved; no safety timers, audio suppression or
 alerts are enabled. The notation-first checkpoint is
 fall_detector/docs/TRACKING_REPAIR_CHECKPOINT.md (initial commit 442b589).
+
+
+### Ordinary Desktop selection check
+
+The user restarted the usual Desktop shortcut and explicitly designated the
+current P candidate as Tyler. The new controls and selected Tyler row were
+visible. Three point-in-time checks retained the Tyler designation; the row
+showed current P2/head visible on accessibility reads, and the unobstructed
+preview also showed the explicit not-reliably-located/unavailable state during
+a gap. Subsequent reads returned to current P2 without a new designation.
+Camera delivery was approximately 13.4-14.2 FPS with zero read failures,
+reconnects or pose submissions skipped. Calibration stayed idle with zero
+samples. No capture, setting save, profile save, movement instruction or new
+personal feature collection occurred.
+
+No P-number change was observed in these checks. Supported new-ID reattachment
+therefore remains verified by synthetic tests, not this live session. The final
+screenshot was occluded, so its counters/selector text cannot independently
+verify the head position. The basic live selection check confirms the new
+interface and visible missing-data behavior; it does not establish continuous
+correct head tracking, personal identity or caregiver recognition. Genuine pose
+loss and alternative-model validation remain open before operational thresholds.
