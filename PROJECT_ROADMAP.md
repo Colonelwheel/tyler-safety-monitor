@@ -18,6 +18,15 @@ This project is an assistive backup, not a medical device, professional monitori
 
 Status updated: October 5, 2026.
 
+October 7 update: Tyler approved Milestone 2 simulated implementation. The separate
+decision engine/panel and requested live diagnostic counter are complete within
+their simulated/observational scope; all 430 synthetic tests and the dependency
+check passed. See
+`fall_detector/docs/MILESTONE_2.md` and the current next-chat handoff. Simulation
+uses synthetic facts and read-only approved feature replays; personal recognition
+and thresholds remain unvalidated. Automatic posture recovery cannot cancel a
+manual choking incident. Milestone 3 requires new source approval.
+
 - The public informational and SMS-consent website is complete and published through GitHub Pages.
 - Homepage: <https://colonelwheel.github.io/tyler-safety-monitor/>
 - Privacy Policy: <https://colonelwheel.github.io/tyler-safety-monitor/privacy.html>
@@ -205,9 +214,9 @@ These must not be guessed when their implementation stage arrives:
 
 ## Next task for the camera-program phase
 
-Read `FALL_DETECTOR_BLUEPRINT.md` and `NEXT_CHAT_HANDOFF.md`, then inspect and propose **Milestone 2 — Detection state machine**. Obtain approval before its source-code implementation or personalized collection. Do not silently change approved safety, accessibility, privacy, or alert-escalation behavior.
+Read `FALL_DETECTOR_BLUEPRINT.md` and `NEXT_CHAT_HANDOFF.md`, then inspect and propose **Milestone 3 — Accessible warning and controls**. Obtain approval before its source-code implementation, actual audio behavior or personalized collection. Do not silently change approved safety, accessibility, privacy, or alert-escalation behavior.
 
-Milestones 0 and 1 tooling are complete within the limited observation/calibration/replay scope. Milestone 1 source and documentation were approved October 5, 2026; real personalized data was not collected. Tyler deferred caregiver-entry samples; true simultaneous two-person tracking remains unvalidated. Milestone 2 requires new approval. The supplied lighting photographs were ordinary photographs, not instructed movement tests.
+Milestones 0 and 1 tooling are complete within the limited observation/calibration/replay scope. Milestone 1 source and documentation were approved October 5, 2026; real personalized data was not collected during that implementation. Two later separately approved safe feature sessions remain private. Tyler deferred caregiver-entry samples; true simultaneous two-person tracking remains unvalidated. Milestone 2's simulated scope was approved October 7; Milestone 3 requires new approval. The supplied lighting photographs were ordinary photographs, not instructed movement tests.
 
 Tyler clarified on October 5 that safe intentional head-down depth varies slightly between days. The intentional-lean proposal has a small, explicitly reviewable margin control (zero by default, expressed in original-frame coordinates); its UI limit is not an approved safety threshold. Do not fit final soft/hard boundaries to today's maximum, automatically expand danger boundaries, or assume that the approved 30-second ordinary-lean grace period compensates for missed severe recognition.
 

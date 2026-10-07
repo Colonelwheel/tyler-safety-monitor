@@ -126,7 +126,10 @@ The word **URGENT** is reserved for the choking message. The fall message must n
 
 Stop future repeat messages when any of these occurs:
 
-- Tyler visibly recovers.
+- Tyler visibly recovers from a possible-fall incident. Automatic posture recovery
+  does not cancel a manual choking alert (Tyler's clarification, October 7, 2026).
+  Upright posture does not establish that choking has resolved; use explicit
+  Cancel/Resolve, a valid caregiver reply, or confirmed caregiver presence.
 - A second person is reliably detected for at least two seconds.
 - Any inbound SMS reply arrives from the configured caregiver number after the incident began.
 - Tyler or the caregiver explicitly resolves the incident in the application.

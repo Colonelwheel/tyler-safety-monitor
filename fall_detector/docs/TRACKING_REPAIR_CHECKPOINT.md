@@ -1,5 +1,43 @@
 # Tracking repair checkpoint
 
+## October 7, 2026: approved simulated Milestone 2 implementation
+
+Tyler approved Milestone 2's simulated source/replay/interface/tests/documentation
+in the current conversation. Source is implemented; all 430 synthetic tests and
+the isolated dependency check passed. Independent review found no remaining
+concrete source defect; the 19-file staged privacy review and staged whitespace
+check passed. Earlier references below to
+Milestone 2 being unapproved describe the tracking-repair session, not current
+authorization. Milestone 3 still requires a separate proposal and source approval.
+
+The independent simulation does not require restored dim lighting, movement,
+caregiver participation or new personal data. Current brighter-light tracking
+is reported reliable; dim-light recognition and physical acceptance remain
+pending. Tests preserve missing-data uncertainty and original incident deadlines.
+Before caregiver qualification, missed/ambiguous observations reset the strict
+two-second confirmation. After qualification, loss does not prove departure;
+uncertainty remains visible. Reliable departure restores simulated saved audio
+immediately, with 30 continuous safe seconds required separately for rearming.
+
+Tyler expressly approved that posture recovery cannot cancel manual choking.
+Only explicit Cancel/Resolve, a valid caregiver reply or confirmed caregiver
+presence stops repeats. The initial manual intent remains possible in every
+mode; caregiver silence takes priority. Departure must not revive a suppressed
+incident. Existing calibration data, feature schemas, Full-pose selection and
+experimental face comparison are unchanged. Model fusion is a later validation
+option, not enabled by this milestone.
+
+Next handoff: `NEXT_CHAT_HANDOFF.md`; implementation details and deferred gates:
+`fall_detector/docs/MILESTONE_2.md`. All older repair evidence is retained below.
+
+Tyler additionally requested a live diagnostic two-second second-person counter.
+It is implemented with candidate/status, observed 0.0-2.0 seconds, reset count and
+reason. It requires fresh Full-pose evidence plus explicit Tyler designation,
+and resets on missing/ambiguous/stale results, unsupported association, selection
+changes, camera pause or scene edits. It does not claim caregiver identity or
+connect to alert suppression/audio. Actual Desktop and caregiver checks remain
+pending; no caregiver participation or new personal collection occurred.
+
 Updated October 6, 2026. The notation-first checkpoint preceded all new source
 edits. Persistent selection implementation is now synthetically verified;
 the basic ordinary Desktop selection check is now verified, while a live

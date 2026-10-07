@@ -20,6 +20,7 @@ from .camera import CameraCapture, CameraSettings
 from .scene import Rect, SceneConfig
 from .settings import AppSettings, load_settings, save_settings
 from .tracking import PersonTracker
+from .caregiver_status import CaregiverStatusCounter
 
 
 class Preview(QWidget):
@@ -161,6 +162,8 @@ class Dashboard(QMainWindow):
         self.head_model_prepared.connect(self.finish_head_preparation)
         self.sound = TestSound()
         self.tracker = PersonTracker()
+        self.caregiver_counter = CaregiverStatusCounter()
+        self._caregiver_subject_epoch = None
         self.last_sequence = -1
         self.last_pose_timestamp = -1
         self.last_pose_seen_at = 0.0
@@ -213,6 +216,11 @@ class Dashboard(QMainWindow):
         self.pose_status = QLabel("Pose model not started")
         self.pose_status.setWordWrap(True)
         main.addWidget(self.pose_status)
+        self.caregiver_status = QLabel()
+        self.caregiver_status.setWordWrap(True)
+        self.caregiver_status.setAccessibleName("Live second-person diagnostic")
+        main.addWidget(self.caregiver_status)
+        self.render_caregiver_status()
         candidates_note = QLabel("Tracks are person candidates. No fall classification or caregiver confirmation.")
         candidates_note.setWordWrap(True)
         main.addWidget(candidates_note)
@@ -296,6 +304,9 @@ class Dashboard(QMainWindow):
         self.tabs.setMinimumWidth(440)
         self.tabs.addTab(scroll, "Camera / Masks")
         self.tabs.addTab(tools_scroll, "Calibration / Replay")
+        from .simulation_ui import SimulationPanel
+        self.simulation = SimulationPanel()
+        self.tabs.addTab(self.simulation, "Simulation")
         layout.addWidget(self.tabs, 1)
         self.setCentralWidget(central)
         self.setStyleSheet("""
@@ -412,6 +423,8 @@ class Dashboard(QMainWindow):
         self._start_camera()
 
     def _start_camera(self) -> None:
+        self.caregiver_counter.reset("Camera session restarted.")
+        self.render_caregiver_status()
         if self.tools.player is not None:
             self.tools.leave_replay()
         self.tools.trajectory.clear()
@@ -442,6 +455,8 @@ class Dashboard(QMainWindow):
             self.pose_status.setText("Pose model missing. Download it explicitly using the documented model command.")
 
     def pause_camera(self) -> None:
+        self.caregiver_counter.reset("Camera paused; current people unavailable.")
+        self.render_caregiver_status()
         self.stop_head_comparison()
         self.tools.stop_capture("Camera paused; previously collected features remain in memory.")
         self.tools.last_live_tracks = []
@@ -544,6 +559,8 @@ class Dashboard(QMainWindow):
         if self.tools.player is not None:
             self.edit_status.setText("Return to live view before changing camera ROI or masks.")
             return
+        self.caregiver_counter.reset("Scene changed; previous person evidence discarded.")
+        self.render_caregiver_status()
         self.settings = replace(self.settings, scene=scene)
         self.preview.scene = scene
         self.preview.tracks = []
@@ -684,7 +701,39 @@ class Dashboard(QMainWindow):
             "Magenta squares are current face estimates; Full pose IDs/counters stay separate. "
             "Samples are capped at 2 FPS and are not an accuracy score. Calibration capture is disabled; no imagery is saved.")
 
+    def render_caregiver_status(self) -> None:
+        snapshot = self.caregiver_counter.snapshot
+        candidate = "none" if snapshot.candidate_id is None else f"P{snapshot.candidate_id}"
+        state = ("Caregiver candidate confirmed — diagnostic only"
+                 if snapshot.status == "confirmed" else snapshot.status)
+        if snapshot.status in {"unselected", "unavailable"}:
+            selected = hasattr(self, "tools") and self.tools.subject.state.selected
+            state = ("Tyler unavailable; counter reset" if selected
+                     else "Select Tyler in Calibration / Replay")
+        reset_reason = (snapshot.reset_reason or "none").rstrip(".")
+        self.caregiver_status.setText(
+            f"LIVE SECOND-PERSON DIAGNOSTIC • {state} • candidate {candidate} • "
+            f"{snapshot.elapsed:.1f} / 2.0 seconds\n"
+            f"Resets: {snapshot.resets} • Last reset: {reset_reason}. "
+            "No alert suppression or audio muting."
+        )
+
+    def observe_caregiver_status(self, tracks, captured_at, observation_time=None) -> None:
+        # Use only source-mapped pose results after persistent Tyler selection is
+        # updated. This is an observational counter, never a safety-mode input.
+        subject_time = captured_at if observation_time is None else max(captured_at, observation_time)
+        subject = self.tools.subject.eligible(tracks, subject_time)
+        self.caregiver_counter.update(tracks, None if subject is None else subject.id, captured_at)
+        self.caregiver_counter.tick(time.monotonic())
+        self.render_caregiver_status()
+
     def refresh(self) -> None:
+        epoch = self.tools.subject.state.selection_epoch
+        if epoch != self._caregiver_subject_epoch:
+            self.caregiver_counter.reset("Tyler designation changed; previous confirmation cleared.")
+            self._caregiver_subject_epoch = epoch
+        self.caregiver_counter.tick(time.monotonic())
+        self.render_caregiver_status()
         self.tools.tick()
         if self.tools.render_replay():
             return
@@ -727,6 +776,8 @@ class Dashboard(QMainWindow):
                 self.last_pose_seen_at = result.timestamp_ms / 1000
                 if not 0 <= time.monotonic() - self.last_pose_seen_at <= 1.0:
                     self.preview.tracks = []
+                    self.caregiver_counter.reset("Stale pose result; current people unavailable.")
+                    self.render_caregiver_status()
                 else:
                     try:
                         self.preview.tracks = self.tracker.update(result.observations, self.last_pose_seen_at)
@@ -735,8 +786,14 @@ class Dashboard(QMainWindow):
                         # recorded with an invented frame index or source time.
                         if source is not None:
                             self.tools.observe(result, self.preview.tracks, *source)
+                            self.observe_caregiver_status(self.preview.tracks, source[1], self.last_pose_seen_at)
+                        else:
+                            self.caregiver_counter.reset("Pose result has no mapped source frame.")
+                            self.render_caregiver_status()
                     except ValueError:
                         self.preview.tracks = []
+                        self.caregiver_counter.reset("Invalid pose/track observation.")
+                        self.render_caregiver_status()
             error = self.pose.error
             pose_state = error or ("two-person capacity; candidates only" if getattr(self.pose, "ready", True)
                                    else "initializing local model")
@@ -751,6 +808,9 @@ class Dashboard(QMainWindow):
                 + self.tracker.diagnostics.summary())
         self.refresh_head_comparison(metrics.state == "LIVE")
         if metrics.state != "LIVE" or time.monotonic() - self.last_pose_seen_at > 1.0:
+            if metrics.state != "LIVE":
+                self.caregiver_counter.reset("Camera not live; current people unavailable.")
+                self.render_caregiver_status()
             self.tracking_status.setText("Tracking unavailable: no current pose result. Previous positions are not held.")
             self.preview.tracks = []
             self.tools.last_live_tracks = []
@@ -766,6 +826,7 @@ class Dashboard(QMainWindow):
             return
         self.shut_down = True
         self.timer.stop()
+        self.simulation.shutdown()
         self.pause_camera()
         if self._cleanup_thread is not None:
             # Exiting may wait for bounded cleanup; ordinary controls never do.

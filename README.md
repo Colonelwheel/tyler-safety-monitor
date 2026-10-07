@@ -13,6 +13,10 @@ The site uses plain HTML and CSS. It has no build step, analytics, trackers, coo
 
 Milestones 0 and 1 provide an observation-only Windows tray/dashboard, guided feature-only calibration, local versioned profiles, and a synthetic/approved-local-data replay harness. See [`fall_detector/README.md`](fall_detector/README.md) for launch instructions and validation limits. Personalized calibration remains pending. Emergency detection, caregiver audio switching, and real messaging are not implemented. Runtime photographs, recordings, personalized features, logs, databases, credentials, phone numbers, and caregiver information must never be committed.
 
+Milestone 2 adds an isolated simulation panel for warning/recovery/caregiver/away/
+night/fault decisions. It emits in-memory descriptions of what would happen;
+actual messaging, automatic audio, recording and startup behavior remain disabled.
+
 ## Pages
 
 - `index.html` — homepage

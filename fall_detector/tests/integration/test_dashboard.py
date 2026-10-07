@@ -608,7 +608,11 @@ def test_scene_change_invalidates_old_candidates_and_forwards_revision(window):
 def test_controls_expose_observation_status_and_no_emergency_or_messaging_action(window):
     labels = [control.text() for control in window.findChildren(QPushButton)]
     assert "Test Sound" in labels and "Decrease" in labels and "Increase" in labels
-    assert not any("SMS" in label or "Choking" in label or "Possible Fall" in label for label in labels)
+    assert not any("SMS" in label for label in labels)
+    for control in window.findChildren(QPushButton):
+        if "Choking" in control.text() or "Possible Fall" in control.text():
+            assert window.simulation.isAncestorOf(control)
+            assert "SIMULATION" in control.text().upper()
     for control in window.findChildren(QPushButton):
         assert control.minimumHeight() >= 60 and control.accessibleName()
 

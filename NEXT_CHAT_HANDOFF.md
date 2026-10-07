@@ -1,6 +1,81 @@
-# Next-chat handoff — Milestone 2: simulated detection state machine
+# Next-chat handoff — Milestone 3: accessible warnings and controls
 
-Updated: October 6, 2026.
+Updated: October 7, 2026.
+
+## Current handoff: Milestone 2 complete within its simulated scope
+
+Tyler approved the simulated Milestone 2 source, interface, replay, tests and
+documentation on October 7. The final full suite passed 430 synthetic tests,
+the dependency check passed, and independent review found no remaining concrete
+source defect after fixes and regression coverage. The 19-file staged privacy
+review and staged whitespace check passed. No physical validation or
+safety-readiness claim is implied.
+Read `fall_detector/docs/MILESTONE_2.md` for scope and limitations. The earlier
+Milestone 2 opening prompt below is historical, not a request to reimplement it.
+
+Milestone 2 shows what would happen, without messaging or automatic audio. It
+tests fixed warning deadlines through recognition gaps, positive recovery,
+strict two-second caregiver confirmation, retained caregiver silence during
+uncertainty, supported paired exit, independent simulated audio restoration,
+30-second safe rearm, Night/manual commands and faults. It does not validate
+recognition or approve personal thresholds. Existing approved features remain
+read-only, uncalibrated and unknown; saved schemas/bytes are preserved.
+
+Tyler additionally requested live second-person diagnostics. The main dashboard
+now displays a candidate, observed 0.0-2.0 seconds, reset count and restart reason.
+Use Calibration / Replay to designate Tyler first. This diagnostic is independent
+of simulated/real caregiver suppression and saves nothing. Current evidence loss
+resets the counter even after qualification; a retained simulated caregiver audio
+latch is separately shown as uncertain when fresh evidence is absent. Actual
+ordinary Desktop/caregiver validation remains pending.
+
+Tyler separately approved: automatic posture recovery must never cancel a
+manual choking incident. Explicit Cancel/Resolve, a valid caregiver reply, or
+confirmed caregiver presence stops repeats. An immediate manual choking intent
+remains possible in every mode. Existing caregiver suppression must not resume
+repeats or choking maximum-volume intent merely because the caregiver departs.
+
+Tyler reports that brighter conditions currently track reliably and dim light
+causes flicker. Simulated development is independent of lighting. Physical
+dim-light validation is deferred until those conditions return. No new capture,
+movement request, caregiver session, model fusion or confidence-policy acceptance
+is implied. Experimental face comparison remains separate from Full calibration.
+
+## Ready-to-use next-chat prompt
+
+> Continue Tyler Safety Monitor in C:\Codex Projects\Tyler Safety Monitor. Read
+> fall_detector/docs/TRACKING_REPAIR_CHECKPOINT.md first, then every project-authored
+> Markdown document, including AGENTS.md, FALL_DETECTOR_BLUEPRINT.md,
+> NEXT_CHAT_HANDOFF.md and fall_detector/docs/MILESTONE_2.md. The blueprint plus
+> Tyler's October 7 choking clarification are the approved baseline.
+>
+> Inspect current Git/source/tests and propose Milestone 3: actual accessible
+> warning screen, speech/sounds and one-action controls in test mode. Ask before
+> source changes. This handoff does not approve Milestone 3, actual Windows audio
+> switching, real messaging, recording, startup/watchdog or new personal collection.
+>
+> Preserve the separate simulated engine, fixed timers through uncertainty,
+> caregiver-confirmation/departure rules and choking cancellation clarification.
+> Preserve the requested live diagnostic two-second counter and explicit
+> candidate-only labels; it must not become operational caregiver recognition.
+> Caregiver silence overrides choking; reliable departure restores saved audio
+> independently of armed state. Keep essential one-pointer controls visible.
+> Propose any actual audio work explicitly before implementation. No caregiver
+> session is required now; actual involvement stays deferred to Milestone 6 unless
+> a concrete earlier dependency is explained and agreed upon.
+>
+> Keep personal boundaries unapproved and existing profiles/features/settings/models
+> unchanged. Reuse the isolated .venv, preserve the OneDrive backup/global Python
+> and root public website. Account for Codex AppData redirection; do not merge
+> runtime copies. Use fresh synthetic scratch, verify, review staged privacy,
+> update the next handoff/checkpoint, then commit and push with sensible wording.
+
+Current launch: the normal **Tyler Safety Monitor** Desktop shortcut, or the
+existing `--no-camera --show` command in `fall_detector/README.md`. Open
+**Simulation**, select a scenario, then **Play / Pause Simulation**. Cancel and
+Play controls stay outside scrolling. The simulation starts paused and is
+independent of live camera/calibration. **Advance 10 Seconds — Simulation** tests
+timers without real waiting. No physical movement is needed.
 
 Preferred working copy: `C:\Codex Projects\Tyler Safety Monitor`. Tyler approved
 relocation outside OneDrive and updating the existing Desktop shortcut. The
@@ -8,7 +83,7 @@ original project and environment remain intact as a backup; continue development
 in the local copy. Full Git history and the existing origin were copied. Saved
 private AppData files remain at their original locations.
 
-## Ready-to-use opening prompt
+## Historical Milestone 2 opening prompt and earlier evidence
 
 > Continue Tyler Safety Monitor in this existing project. Before changes, discover and read every project-authored Markdown file: AGENTS.md, README.md, PROJECT_ROADMAP.md, FALL_DETECTOR_BLUEPRINT.md, NEXT_CHAT_HANDOFF.md, fall_detector/README.md, and all fall_detector/docs documents. Treat FALL_DETECTOR_BLUEPRINT.md as the approved baseline.
 >

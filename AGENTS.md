@@ -14,7 +14,20 @@ Read every project-authored Markdown document before implementation changes. Tre
   with synthetic verification. Actual personalized collection and saving imagery
   were not authorized by that implementation approval. Feature capture and saves
   require the visible, separate user confirmations; this milestone never saves
-  camera imagery. Milestone 2 still needs approval.
+  camera imagery. This earlier approval did not authorize Milestone 2.
+- Tyler approved Milestone 2 simulated source, replay, interface, tests and
+  documentation on October 7, 2026. Use synthetic evidence and read-only existing
+  approved feature replays; personal boundaries remain uncalibrated. No real
+  messaging, automatic audio/Windows switching, recording, startup or watchdog.
+  This approval does not authorize Milestone 3 or new personal collection.
+- Tyler also requested a live diagnostic second-person status and two-second
+  confirmation counter, including visible restarts due to flicker. This uses
+  existing Full-pose candidates and the explicit Tyler designation, saves nothing,
+  and must not enable caregiver identity claims, alert suppression or audio changes.
+- Tyler approved on October 7 that automatic posture recovery must not cancel a
+  manual choking alert. Explicit Cancel/Resolve, a valid caregiver reply, or
+  confirmed caregiver presence stops repeats. Upright posture is not proof that
+  choking has resolved; the immediate manual alert remains available in every mode.
 - **Choose sensible, self-describing commit messages for this project. Do not ask
   Tyler for commit wording.** Tyler approved this ongoing preference on October 4,
   2026; it supersedes earlier instructions in the blueprint and handoff to agree

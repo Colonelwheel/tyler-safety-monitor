@@ -5,6 +5,14 @@ Milestones 0 and 1 provide camera capture, person-candidate overlays, ROI/exclus
 editing, guided feature calibration, replay, and an accessible tray dashboard. **Emergency detection and caregiver
 messaging are disabled. It is not an armed safety monitor.**
 
+Milestone 2 adds a separate **Simulation** tab that practices warning, recovery,
+caregiver, away, night and fault behavior using synthetic evidence. Select a
+scenario and **Play / Pause Simulation**; **Cancel Simulated Alert** stays visible.
+No camera/movement is required and no message, speech, automatic sound or Windows
+audio change occurs. Pause freezes the simulation clock; Restart clears only
+its in-memory scenario state. Opening an approved feature replay is read only
+and keeps personal risk thresholds uncalibrated. See [Milestone 2](docs/MILESTONE_2.md).
+
 Read all project Markdown and [`../AGENTS.md`](../AGENTS.md) before implementation.
 The root compliance website and its GitHub Pages URLs remain unchanged.
 
@@ -245,6 +253,14 @@ estimates. Inspect the magenta estimate locations: a false pillow estimate can
 keep a no-face counter at zero. Higher cutoffs also risk dropping genuine heads.
 
 ### Select Tyler independently of temporary P IDs
+
+The main dashboard also shows **LIVE SECOND-PERSON DIAGNOSTIC**. After selecting
+Tyler as described below, it shows the separate candidate, observed progress up
+to **2.0 seconds**, the reset count and why the counter restarted. Flicker,
+missing/ambiguous Tyler, changed candidates and stale observations reset it.
+**Caregiver candidate confirmed — diagnostic only** does not verify identity,
+enable alert suppression, mute audio or save any data. It uses Full pose only;
+experimental face estimates cannot advance this counter.
 
 In Calibration / Replay, choose your current visible P candidate and press
 **Use Selected Candidate as Tyler**. The Tyler row stays selected through
