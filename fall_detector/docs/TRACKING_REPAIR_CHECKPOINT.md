@@ -210,3 +210,31 @@ occurs later, inspect the current selection and whether it confirms the new P
 number or correctly requires reselection. A long gap or competing-person
 condition requiring reselection is intentional, not proof that every ID should
 be accepted. No Milestone 2 approval or new capture is implied by this check.
+
+
+## Handoff decision and angle-dependent misses
+
+The user reports that ordinary straight-ahead posture flickers more, while the
+usual safely lowered posture flickers less. The latter is not perfect tracking;
+this corrects the initial informal description. It is a user observation, not
+a measured comparison or an isolated diagnosis of lighting/view angle. Do not
+ask the user to remain head-down or repeat a movement to suit the detector.
+Ordinary comfortable posture and tolerated lighting remain the required target.
+
+Milestone 1 TOOLING is ready for handoff: guided capture, preservation/versioned
+profiles, replay, visualization, persistent selection source and 323 synthetic
+tests are complete within their approved scope. The basic Desktop selection
+check retained the designation through missing/visible states. A live new-ID
+reattachment was not observed, and native head-loss/angle sensitivity remains
+unresolved. These limits must remain visible, not be smoothed into safe evidence.
+
+It is appropriate to proceed to Milestone 2 SIMULATED state-machine development
+after its separate source approval, with uncertainty/gap/fault behavior covered
+by deterministic tests and existing measurement provenance preserved. Perfect
+per-frame recognition is not a prerequisite to implementing that simulated
+logic. This is not approval of operational thresholds, new personal capture,
+caregiver audio changes, real messaging or live arming. Actual tracking quality,
+longest gaps, caregiver coverage and supervised validation must satisfy the
+blueprint's later live-alert acceptance gates. Caregiver participation remains
+deferred to the agreed supervised stage. Do not declare safety readiness from
+the current visual impression.
