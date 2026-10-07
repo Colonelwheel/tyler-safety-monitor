@@ -159,3 +159,19 @@ head movement is needed. Verify the Tyler row remains designated across a
 supported P-ID change while missing/ambiguous states remain unavailable. Do not
 claim sustained tracking stability from synthetic tests. Update this checkpoint
 and handoff with the actual live result and any remaining limitation.
+
+
+## Current committed state
+
+Persistent selection source/docs committed and pushed as 942873a after all 323
+synthetic tests, final independent review and nine-file staged privacy review
+passed. The source repair is complete; ordinary Desktop live behavior is not yet
+verified. The user has been asked to exit/relaunch the usual Desktop shortcut,
+open Calibration / Replay, choose the current P candidate on their head, and
+click Use Selected Candidate as Tyler, then reply ready. Do not begin a feature
+capture for this check. No Computer Use is needed while waiting/coding.
+
+After ready, inspect only the monitor window to check current designation,
+missing/confirming states and supported P-ID change. Do not treat another
+person's unobserved real visit as a verified detection result; the competing
+person finding above was synthetic. Keep masks/settings/private files intact.
