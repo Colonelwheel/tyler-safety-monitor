@@ -16,7 +16,19 @@ This project is an assistive backup, not a medical device, professional monitori
 
 ## Current project status
 
-Status updated: October 5, 2026.
+October 8 update: Milestone 3 now provides an explicitly enabled manual warning
+test session, full-screen test warnings, selected-volume local speech/sounds
+after separate opt-in, and configurable global hotkeys for VoiceAttack INPUT.
+No microphone recognition is added. All mappings default unassigned; explicit
+Apply/Remove works anytime and Save creates a separate exclusive revision.
+Saved mappings restore automatically; test session/audio re-enable per launch.
+Dashboard startup is foreground during development, with tray-first restoration
+deferred until Tyler approves it near project completion. See
+`fall_detector/docs/MILESTONE_3.md` for verification and limits. Milestone 4 remains
+unapproved and uses simulated messaging; all real texts stay deferred to Milestone
+6 unless separately approved earlier.
+
+Status updated: October 8, 2026. Earlier dated updates below are historical.
 
 October 7 update: Tyler approved Milestone 2 simulated implementation. The separate
 decision engine/panel and requested live diagnostic counter are complete within
@@ -212,6 +224,16 @@ These must not be guessed when their implementation stage arrives:
 5. Detailed Android USB/cellular fallback design.
 6. Later escalation beyond SMS, including voice calls, additional contacts, professional monitoring, or emergency services.
 
+## Deferred Milestone 6 fullscreen/VoiceAttack check
+
+- Deferred by Tyler on October 8 until Milestone 6: test first warning appearance
+  and fall-to-choking transition while an ordinary window, borderless fullscreen
+  program and true exclusive-fullscreen program are active. Verify the popup comes
+  forward and Cancel plus simulated Contact 911 work through independently chosen
+  global hotkeys/VoiceAttack without using a mouse. Check display scaling/multiple
+  monitors, registration conflicts, disabled-session guards and recovery of focus.
+  Do not mark this accepted from offscreen tests; no real 911 call is part of it.
+
 ## Next task for the camera-program phase
 
 October 7 follow-up: Tyler requested all real SMS, including test texts, be
@@ -221,9 +243,9 @@ and reply tests precede explicit live arming after all acceptance gates. Use
 Computer Use only during active UI inspection/actions; end/reset that automation
 session before coding or waiting unless a current UI action needs it.
 
-Read `FALL_DETECTOR_BLUEPRINT.md` and `NEXT_CHAT_HANDOFF.md`, then inspect and propose **Milestone 3 — Accessible warning and controls**. Obtain approval before its source-code implementation, actual audio behavior or personalized collection. Do not silently change approved safety, accessibility, privacy, or alert-escalation behavior.
+Read `FALL_DETECTOR_BLUEPRINT.md` and `NEXT_CHAT_HANDOFF.md`, then inspect and propose **Milestone 4 — Simulated messaging**. Obtain approval before its source-code implementation or new runtime/credential scope. Do not silently change approved safety, accessibility, privacy, or alert-escalation behavior.
 
-Milestones 0 and 1 tooling are complete within the limited observation/calibration/replay scope. Milestone 1 source and documentation were approved October 5, 2026; real personalized data was not collected during that implementation. Two later separately approved safe feature sessions remain private. Tyler deferred caregiver-entry samples; true simultaneous two-person tracking remains unvalidated. Milestone 2's simulated scope was approved October 7; Milestone 3 requires new approval. The supplied lighting photographs were ordinary photographs, not instructed movement tests.
+Milestones 0 and 1 tooling are complete within the limited observation/calibration/replay scope. Milestone 1 source and documentation were approved October 5, 2026; real personalized data was not collected during that implementation. Two later separately approved safe feature sessions remain private. Tyler deferred caregiver-entry samples; true simultaneous two-person tracking remains unvalidated. Milestone 2's simulated scope was approved October 7; Milestone 3 was approved October 8 and uses configurable VoiceAttack input plus local test output. The supplied lighting photographs were ordinary photographs, not instructed movement tests.
 
 Tyler clarified on October 5 that safe intentional head-down depth varies slightly between days. The intentional-lean proposal has a small, explicitly reviewable margin control (zero by default, expressed in original-frame coordinates); its UI limit is not an approved safety threshold. Do not fit final soft/hard boundaries to today's maximum, automatically expand danger boundaries, or assume that the approved 30-second ordinary-lean grace period compensates for missed severe recognition.
 

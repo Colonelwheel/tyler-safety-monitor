@@ -121,6 +121,8 @@ class Snapshot:
     caregiver: bool = False
     night: bool = False
     caregiver_current: bool = False
+    choking: bool = False
+    choking_silent: bool = False
 
 
 class Engine:
@@ -150,6 +152,7 @@ retroactively cancel its already emitted simulated intent.
         self._message_count = 0
         self._next_repeat = None
         self._choking = False
+        self._choking_silent = False
         self._last_choking_command = None
         self._effects = deque(maxlen=self.config.max_effects)
 
@@ -162,6 +165,7 @@ retroactively cancel its already emitted simulated intent.
         caregiver_current = bool(self._caregiver and self._caregiver_last is not None
                                  and self._now - self._caregiver_last <= self.config.max_gap)
         priority = ("caregiver_silent" if self._caregiver else
+                    "choking_silent_simulated" if self._choking_silent else
                     "choking_maximum_simulated" if self._choking else
                     "selected_volume_simulated" if self._incident in {
                         Incident.NORMAL_WARNING, Incident.SEVERE_WARNING,
@@ -171,7 +175,7 @@ retroactively cancel its already emitted simulated intent.
                         self._uncertain or self._caregiver and not caregiver_current,
                         self._reason, priority, self.effects,
                         self._message_count, self._fault, self._caregiver, self._night,
-                        caregiver_current)
+                        caregiver_current, self._choking, self._choking_silent)
 
     def _clock(self, timestamp):
         timestamp = _seconds(timestamp)
@@ -187,12 +191,20 @@ retroactively cancel its already emitted simulated intent.
 
     def _resolve(self, reason):
         if self._incident not in {Incident.NONE, Incident.RESOLVED}:
-            if self._choking and not self._caregiver:
+            if self._choking and not self._caregiver and not self._choking_silent:
                 self._effect("would_restore_audio")
             self._incident = Incident.RESOLVED
             self._deadline = self._next_repeat = None
-            self._choking = False
+            self._choking = self._choking_silent = False
             self._effect("incident_resolved")
+        self._reason = reason
+
+    def _stop_choking_repeats(self, reason):
+        # Acknowledgement/presence stops messaging, not the manual emergency.
+        # Only a subsequent explicit Cancel/Resolve clears choking.
+        if self._next_repeat is not None:
+            self._effect("choking_repeats_stopped")
+        self._next_repeat = None
         self._reason = reason
 
     def _begin(self, severe=False):
@@ -208,7 +220,7 @@ retroactively cancel its already emitted simulated intent.
             return
         self._message_count = 0
         self._next_repeat = None
-        self._choking = False
+        self._choking = self._choking_silent = False
         self._incident = Incident.SEVERE_WARNING if severe else Incident.LEAN_GRACE
         self._deadline = new_deadline
         self._reason = "Simulated severe warning." if severe else "Simulated ordinary lean grace."
@@ -303,13 +315,20 @@ retroactively cancel its already emitted simulated intent.
                 self._rearm_required = True
                 self._mode = Mode.CAREGIVER_PRESENT
                 self._effect("would_silence_audio")
-                self._resolve("Separate simulated caregiver continuously confirmed.")
+                if self._choking:
+                    self._choking_silent = True
+                    self._stop_choking_repeats("Simulated caregiver confirmed; choking repeats stopped. Manual Cancel/Resolve still required.")
+                else:
+                    self._resolve("Separate simulated caregiver continuously confirmed.")
         else:
             self._caregiver_candidate = self._caregiver_since = self._caregiver_last = None
         if evidence.paired_exit and (self._caregiver or had_caregiver):
             self._away = True
             self._mode = Mode.AWAY
-            self._resolve("Previously confirmed caregiver and subject jointly exited in simulation.")
+            if self._choking:
+                self._stop_choking_repeats("Supported paired exit; choking remains active until manual Cancel/Resolve.")
+            else:
+                self._resolve("Previously confirmed caregiver and subject jointly exited in simulation.")
         if evidence.subject_valid:
             self._away = False
         safe = (evidence.calibrated and evidence.subject_valid
@@ -319,7 +338,7 @@ retroactively cancel its already emitted simulated intent.
                 self._safe_since = now
             self._safe_last = now
             # A posture return cannot establish that a manual choking emergency
-            # ended. Only explicit resolution/reply or caregiver arrival does.
+            # ended. Only manual Cancel/Resolve ends the choking incident.
             if evidence.recovery_confirmed and not self._choking:
                 self._resolve("Positive stable recovery evidence confirmed in simulation.")
             if was_resolved:
@@ -358,24 +377,33 @@ retroactively cancel its already emitted simulated intent.
             self._night = False
             self._mode = Mode.READY
             self._reason = "Start requested; fresh calibrated safe confirmation required."
-        elif action in {"cancel", "reply", "resolve"}:
+        elif action in {"cancel", "resolve"}:
             self._resolve("Incident explicitly resolved in simulation.")
+        elif action == "reply":
+            if self._choking:
+                self._stop_choking_repeats("Valid simulated caregiver reply; choking repeats stopped. Manual Cancel/Resolve still required.")
+            else:
+                self._resolve("Incident acknowledged by a valid simulated caregiver reply.")
         elif action == "fall":
-            self._begin(severe=True)
-            if self._caregiver:
-                self._effect("manual_fall_handled_by_caregiver")
-                self._resolve("Manual fall request handled by already confirmed caregiver; warning suppressed.")
+            if self._choking:
+                self._reason = "Manual fall request cannot resolve an active choking incident."
+            else:
+                self._begin(severe=True)
+                if self._caregiver:
+                    self._effect("manual_fall_handled_by_caregiver")
+                    self._resolve("Manual fall request handled by already confirmed caregiver; warning suppressed.")
         elif action == "choking":
             if not self._choking and self._last_choking_command != self._now:
                 self._last_choking_command = self._now
                 self._message_count = 0
                 self._choking = True
+                self._choking_silent = self._caregiver
                 self._incident = Incident.ALERT_ACTIVE
                 self._deadline = None
                 self._send(self._now)
                 self._reason = "Immediate simulated choking intent; no message or audio action."
                 if self._caregiver:
-                    self._resolve("Immediate choking intent handled by already confirmed caregiver; repeats stopped.")
+                    self._stop_choking_repeats("Immediate choking intent with a confirmed caregiver; repeats stopped. Manual Cancel/Resolve still required.")
         self._mode_priority()
         self._advance()
         return self.snapshot

@@ -751,8 +751,11 @@ def test_controls_expose_observation_status_and_no_emergency_or_messaging_action
     assert not any("SMS" in label for label in labels)
     for control in window.findChildren(QPushButton):
         if "Choking" in control.text() or "Possible Fall" in control.text():
-            assert window.simulation.isAncestorOf(control)
-            assert "SIMULATION" in control.text().upper()
+            assert (window.simulation.isAncestorOf(control)
+                    or window.warning_test.isAncestorOf(control)
+                    or window.warning_test.warning.isAncestorOf(control))
+            assert "test" in control.text().lower() or "simulation" in control.text().lower()
+    assert not window.warning_test.enabled and window.warning_test.audio is None
     for control in window.findChildren(QPushButton):
         assert control.minimumHeight() >= 60 and control.accessibleName()
 

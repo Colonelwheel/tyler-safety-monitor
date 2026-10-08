@@ -17,6 +17,12 @@ Milestone 2 adds an isolated simulation panel for warning/recovery/caregiver/awa
 night/fault decisions. It emits in-memory descriptions of what would happen;
 actual messaging, automatic audio, recording and startup behavior remain disabled.
 
+Milestone 3 adds an explicitly enabled **Test Alerts** session, accessible warning
+screens, optional selected-volume local speech/sounds and configurable global
+hotkeys for VoiceAttack input. It never listens to the microphone or sends SMS.
+The dashboard opens in the foreground during development. See
+[`fall_detector/docs/MILESTONE_3.md`](fall_detector/docs/MILESTONE_3.md).
+
 ## Pages
 
 - `index.html` — homepage

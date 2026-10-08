@@ -11,7 +11,9 @@ import sys
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Calibration/replay observation dashboard; no emergency alerts")
-    parser.add_argument("--show", action="store_true", help="open the dashboard immediately")
+    launch = parser.add_mutually_exclusive_group()
+    launch.add_argument("--show", action="store_true", help="open the dashboard immediately (development default)")
+    launch.add_argument("--start-minimized", action="store_true", help="explicitly start in the tray; development opens the dashboard by default")
     parser.add_argument("--model", type=Path, help="local pose model; never downloaded at startup")
     parser.add_argument("--no-camera", action="store_true", help="open controls without accessing camera")
     parser.add_argument("--quit-after", type=float, help="bounded smoke-test runtime in seconds")
@@ -37,8 +39,10 @@ def main() -> int:
         except OSError as error:
             dashboard.pose_status.setAccessibleDescription(f"Startup diagnostic could not be saved: {error}")
     application.aboutToQuit.connect(dashboard.shutdown)
-    if args.show or not dashboard.tray_available:
-        dashboard.show()
+    # Development stays foreground until Tyler approves the final tray-first
+    # default. The explicit option retains the intended production workflow.
+    if not args.start_minimized or not dashboard.tray_available:
+        dashboard.open_dashboard()
     if args.quit_after is not None:
         QTimer.singleShot(int(args.quit_after * 1000), application.quit)
     return application.exec()

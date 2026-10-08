@@ -246,6 +246,9 @@ class MilestoneTools(QWidget):
             self.message("Loaded profile remains available for review. Choose New Session before collecting additional data.")
             return
         d = self.dashboard
+        if hasattr(d, "warning_test") and d.warning_test.enabled:
+            self.message("End the warning test session before collecting features. Existing samples are retained.")
+            return
         if d.comparison_active:
             self.message("Stop the experimental head comparison before calibration. No capture started; existing features retained.")
             return
@@ -277,6 +280,7 @@ class MilestoneTools(QWidget):
             return
         # Native observations and camera state can change while consent is open.
         if (d.capture is not camera or d.pose is not pose or d.comparison_active
+                or hasattr(d, "warning_test") and d.warning_test.enabled
                 or self.player is not None or not self.scene_review.isChecked()
                 or scene != d.settings.scene or generation != d._capture_generation
                 or self.step.currentData() != step

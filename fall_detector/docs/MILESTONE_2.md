@@ -1,5 +1,21 @@
 # Milestone 2 — Simulated detection state machine
 
+October 8 choking correction supersedes earlier caregiver-resolution wording:
+manual choking remains unresolved until explicit manual Cancel/Resolve. Neither
+upright recovery, caregiver entry, caregiver reply nor paired exit resolves it.
+Caregiver arrival or a valid caregiver reply stops message repeats durably, while
+the choking warning stays open. Caregiver presence still silences app audio.
+After reliable caregiver departure, this unresolved choking warning stays silent
+until manual Cancel/Resolve; saved computer audio restoration remains independent
+of armed state. Re-enabling test audio or changing volume cannot clear that latch.
+The choking popup requests foreground activation above ordinary windows, including
+fullscreen programs. Contact 911 has its own user-configurable global hotkey for
+VoiceAttack, initially unassigned, and works only during enabled test choking.
+Real exclusive-fullscreen focus and VoiceAttack delivery require desktop validation.
+Contact 911 in Milestone 3 is SIMULATION ONLY: visual feedback, no call, no network
+or dialer action, no automatic resolution. Any actual emergency-service contact
+requires a separately reviewed implementation and explicit approval.
+
 Approved October 7, 2026. This is a practice version of the decision rules: it
 shows when the future monitor would warn, cancel, stay quiet for a caregiver, or
 report uncertainty. It never sends a message or changes audio. Simulation does

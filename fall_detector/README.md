@@ -16,6 +16,65 @@ and keeps personal risk thresholds uncalibrated. See [Milestone 2](docs/MILESTON
 Read all project Markdown and [`../AGENTS.md`](../AGENTS.md) before implementation.
 The root compliance website and its GitHub Pages URLs remain unchanged.
 
+## Milestone 3 warning tests and VoiceAttack input
+
+Open **Test Alerts**, then **Enable Test Session**. This independent manual clock
+continues beyond feature replay endings; it never reads the camera/diagnostic
+counter or changes personal risk boundaries. Manual **Possible Fall** starts an
+eight-second test warning; **Choking** creates an immediate simulated intent.
+The topmost warning has a dominant **Cancel Test Alert**, plus **Choking — TEST
+ONLY** and **Stop Test Audio**. Choking also shows **Contact 911 — SIMULATION ONLY**;
+this displays a local simulated action, never places a call or resolves choking.
+Contact 911 also has an initially unassigned configurable hotkey for VoiceAttack,
+guarded by an enabled test session and active choking. The popup requests foreground
+activation when it appears; exclusive fullscreen and physical VoiceAttack delivery
+still need a desktop check. After caregiver departure, unresolved choking warning
+speech/sounds remain silent until manual Cancel/Resolve, including after audio
+re-enable or volume changes. Other saved computer audio restoration stays simulated. No message is sent. Pause freezes the test clock
+and stops its output; End stops the session without changing camera/calibration.
+
+**Enable Local Test Speech / Sounds** separately opts into actual computer
+playback at selected application volume. Speech uses an installed local Windows
+voice, without microphone access, downloads or new packages. Ordinary and choking
+demos both respect selected volume; Windows unmute/maximum and other-application
+muting/restoration remain simulated. Missing speech/output reports a visible
+fault while Cancel stays usable. **Stop Test Audio** and dashboard **Stop Test
+Sound** disable warning output without resolving an incident.
+
+The explicitly labeled synthetic evidence selector can exercise ordinary lean,
+severe warning, positive recovery and two-second caregiver continuity. These are
+test facts, not live recognition. Simulated caregiver presence stops all monitor
+audio, including manual Test Sound, and retains silence during uncertainty until
+an explicit synthetic reliable departure. Departure releases the saved selected
+audio policy immediately independently of arming; it never restarts a stopped
+test sound. Choking remains active after entry, reply, posture recovery or paired
+exit; arrival/reply stops repeats only. Manual Cancel/Resolve ends it. Reliable
+departure must not resume stopped repeats. The existing **Simulation** tab remains entirely quiet.
+
+In **Hotkeys**, choose a key and tap Ctrl/Alt/Shift toggles separately. **Apply**
+activates that action's global shortcut; **Remove** releases it. There are no
+predetermined bindings. Conflicts are visible and retain the previous valid
+shortcut. **Save Applied Hotkeys** creates a new exclusive file in
+`%LOCALAPPDATA%\TylerSafetyMonitor\hotkeys`; all previous revisions and existing
+settings/profiles/features/models remain unchanged. Applied unsaved edits last
+only for this session. Saved mappings load and register automatically next launch,
+with registration errors reported. **Enable Test Session** and audio opt-in are
+still required separately after reopening. Registered keys are reserved even
+while the test session is disabled, so choose mappings that do not interfere
+with other applications; Remove releases them.
+
+Configure VoiceAttack externally to press/release the chosen shortcuts for Start,
+Night, Possible Fall, Choking and Cancel/Resolve. The monitor does not edit your
+VoiceAttack profile. Prefer distinct spoken phrases that do not occur in warning
+speech, and check speaker/microphone feedback in your normal setup. Actual
+VoiceAttack delivery, global shortcuts while minimized/in games, audible output
+and physical one-finger acceptance remain pending user-controlled checks.
+
+Feature capture and warning tests cannot overlap: stop/review capture before
+enabling Test Alerts, or end the test before beginning an independently approved
+capture. This preserves existing samples and keeps essential controls reachable.
+See [Milestone 3](docs/MILESTONE_3.md).
+
 ## Open the installed dashboard
 
 The preferred working copy on this PC is `C:\Codex Projects\Tyler Safety Monitor`,
@@ -27,8 +86,10 @@ AppData location.
 The launcher passes the existing Full model path explicitly and uses `-B` to
 prevent bytecode writes. It does not download or replace a model.
 
-Open **Start Monitor.cmd** in this folder. It launches the isolated application
-minimized, with a tray icon. One click on that icon opens the live dashboard.
+Open **Start Monitor.cmd** in this folder. During development it launches the
+isolated application in the foreground, with a tray icon. Tyler requested this
+temporary default on October 8. `--start-minimized` explicitly retains tray-first
+launching; restore that default near project completion only after his approval. One click on that icon opens the live dashboard.
 Closing the dashboard returns it to the tray and camera processing continues.
 **Exit Application** stops the application. If Windows has no tray, a visible
 window and taskbar minimize action provide a fallback.

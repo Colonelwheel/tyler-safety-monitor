@@ -214,7 +214,7 @@ class Dashboard(QMainWindow):
             button("Decrease", lambda: self.change_volume(-0.1)),
             button("Increase", lambda: self.change_volume(0.1)),
             button("Test Sound", self.test_sound),
-            button("Stop Test Sound", self.sound.stop),
+            button("Stop Test Sound", self.stop_all_sounds),
         )
         self._volume_columns = 2
         for index, control in enumerate(self.volume_controls):
@@ -322,6 +322,20 @@ class Dashboard(QMainWindow):
         from .simulation_ui import SimulationPanel
         self.simulation = SimulationPanel()
         self.tabs.addTab(self.simulation, "Simulation")
+        from .test_ui import TestPanel
+        from .hotkeys import GlobalHotkeys
+        from .hotkey_ui import HotkeyPanel
+        self.warning_test = TestPanel(
+            volume=lambda: self.settings.alert_volume,
+            enable_guard=self.allow_warning_test,
+        )
+        self.warning_test.silence_changed.connect(self.warning_test_silence)
+        self.warning_test.audio_enabled_changed.connect(self.warning_audio_enabled)
+        self.tabs.addTab(self.warning_test, "Test Alerts")
+        self.hotkeys = GlobalHotkeys(parent=self)
+        self.hotkeys.activated.connect(self.warning_test.command)
+        self.hotkey_panel = HotkeyPanel(self.hotkeys)
+        self.tabs.addTab(self.hotkey_panel, "Hotkeys")
         # Keep the live continuity counter visible on every tab without
         # shrinking or covering the camera picture with its wrapped text.
         side = QVBoxLayout()
@@ -355,6 +369,8 @@ class Dashboard(QMainWindow):
         for text, callback in (("Open Dashboard", self.open_dashboard),
                                ("Retry Camera", self.start_camera),
                                ("Pause Camera", self.pause_camera),
+                               ("Open Test Controls", self.open_test_controls),
+                               ("Cancel Test Alert", lambda: self.warning_test.command("cancel")),
                                ("Exit", QApplication.instance().quit)):
             action = QAction(text, self)
             action.triggered.connect(callback)
@@ -675,6 +691,33 @@ class Dashboard(QMainWindow):
         self.set_scene(replace(self.settings.scene, exclusions=self.settings.scene.exclusions[:-1]))
         self.edit_status.setText("Last exclusion removed. Review the preview.")
 
+    def allow_warning_test(self) -> bool:
+        if self.tools.state in {"delay", "capturing"}:
+            self.settings_status.setText(
+                "Stop / Review Capture before enabling a warning test. Existing features are retained."
+            )
+            return False
+        return True
+
+    def open_test_controls(self) -> None:
+        self.tabs.setCurrentWidget(self.warning_test)
+        self.open_dashboard()
+
+    def warning_test_silence(self, silent: bool) -> None:
+        # Only the explicitly enabled synthetic test session controls this.
+        # The live candidate counter remains completely disconnected.
+        if silent:
+            self.sound.stop()
+
+    def warning_audio_enabled(self, enabled: bool) -> None:
+        if enabled:
+            self.sound.stop()
+
+    def stop_all_sounds(self) -> None:
+        self.sound.stop()
+        if hasattr(self, "warning_test"):
+            self.warning_test.stop_audio()
+
     def update_volume_label(self) -> None:
         self.volume_label.setText(f"Alert Volume: {self.settings.alert_volume:.0%}")
 
@@ -684,8 +727,17 @@ class Dashboard(QMainWindow):
         self.update_volume_label()
         if self.sound.sink is not None:
             self.sound.sink.setVolume(volume)
+        self.warning_test.volume_changed()
 
     def test_sound(self) -> None:
+        if self.warning_test.enabled and self.warning_test.caregiver_silent:
+            self.sound.stop()
+            self.settings_status.setText(
+                "Simulated caregiver silence blocks monitor Test Sound. Windows audio is unchanged."
+            )
+            return
+        # Explicit Test Sound takes audio ownership without resolving an alert.
+        self.warning_test.stop_audio()
         try:
             self.sound.play(self.settings.alert_volume)
             self.settings_status.setText("Test Sound uses the selected app volume. Windows volume is unchanged.")
@@ -912,6 +964,8 @@ class Dashboard(QMainWindow):
         self.shut_down = True
         self.timer.stop()
         self.simulation.shutdown()
+        self.warning_test.close_resources()
+        self.hotkeys.close()
         self.pause_camera()
         if self._cleanup_thread is not None:
             # Exiting may wait for bounded cleanup; ordinary controls never do.

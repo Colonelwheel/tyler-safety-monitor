@@ -271,7 +271,11 @@ def test_choking_is_immediate_silent_with_caregiver_and_idempotent_when_repeated
     engine.tick(1000)
     assert engine.snapshot.message_count == 1
     engine.command("reply", 1000)
+    assert engine.snapshot.incident == Incident.ALERT_ACTIVE
+    assert engine.snapshot.choking
+    engine.command("cancel", 1001)
     assert engine.snapshot.incident == Incident.RESOLVED
+    assert not engine.snapshot.choking
 
 
 def test_upright_stable_posture_and_positive_visual_recovery_do_not_resolve_choking():
@@ -288,13 +292,15 @@ def test_upright_stable_posture_and_positive_visual_recovery_do_not_resolve_chok
     assert engine.snapshot.incident == Incident.RESOLVED
 
 
-def test_newly_confirmed_caregiver_resolves_choking_and_stops_repeats():
+def test_newly_confirmed_caregiver_keeps_choking_active_and_stops_repeats():
     engine = Engine()
     engine.command("choking", 0)
     qualify_caregiver(engine, began=1)
-    assert engine.snapshot.incident == Incident.RESOLVED
+    assert engine.snapshot.incident == Incident.ALERT_ACTIVE
+    assert engine.snapshot.choking
     assert engine.snapshot.audio_priority == "caregiver_silent"
     engine.tick(1000)
+    assert engine.snapshot.incident == Incident.ALERT_ACTIVE
     assert engine.snapshot.message_count == 1
 
 
@@ -323,19 +329,23 @@ def test_visible_subject_does_not_hide_missing_caregiver_evidence_after_confirma
     assert not engine.snapshot.uncertain
 
 
-def test_choking_with_existing_caregiver_does_not_resume_after_departure():
+def test_choking_with_existing_caregiver_repeats_do_not_resume_after_departure():
     engine = Engine()
     qualify_caregiver(engine)
     engine.command("choking", 3)
-    assert engine.snapshot.incident == Incident.RESOLVED
+    assert engine.snapshot.incident == Incident.ALERT_ACTIVE
+    assert engine.snapshot.choking
+    assert engine.snapshot.audio_priority == "caregiver_silent"
     engine.observe(safe(4, caregiver_departed=True))
-    assert engine.snapshot.audio_priority == "idle"
+    assert engine.snapshot.audio_priority == "choking_silent_simulated"
+    assert engine.snapshot.choking and engine.snapshot.choking_silent
+    assert kinds(engine).count("would_restore_audio") == 1
     engine.tick(63)
     assert engine.snapshot.message_count == 1
     assert [(effect.timestamp, effect.kind) for effect in sends(engine)] == [(3, "would_send_choking")]
 
 
-@pytest.mark.parametrize("action", ["cancel", "resolve", "reply"])
+@pytest.mark.parametrize("action", ["cancel", "resolve"])
 def test_explicit_choking_resolution_restores_simulated_audio(action):
     engine = Engine()
     engine.command("choking", 0)
@@ -457,3 +467,115 @@ def test_contradictory_or_invalid_evidence_is_rejected(changes):
 def test_config_rejects_invalid_policy(changes):
     with pytest.raises(ValueError):
         Config(**changes)
+
+
+@pytest.mark.parametrize("action", ["cancel", "resolve"])
+def test_choking_reply_stops_repeats_durably_without_resolution(action):
+    engine = Engine()
+    engine.command("choking", 0)
+    engine.command("reply", 1)
+    assert engine.snapshot.choking
+    assert engine.snapshot.incident == Incident.ALERT_ACTIVE
+    assert engine.snapshot.audio_priority == "choking_maximum_simulated"
+    assert "would_restore_audio" not in kinds(engine)
+    engine.observe(safe(2, recovery_confirmed=True))
+    engine.command("night", 3)
+    engine.command("start", 4)
+    engine.command("choking", 5)  # Active incident cannot restart its stopped repeats.
+    engine.tick(1000)
+    assert engine.snapshot.message_count == 1
+    assert engine.snapshot.choking
+    assert kinds(engine).count("choking_repeats_stopped") == 1
+    engine.command(action, 1001)
+    assert not engine.snapshot.choking
+    assert engine.snapshot.incident == Incident.RESOLVED
+    assert kinds(engine).count("would_restore_audio") == 1
+
+
+def test_choking_paired_exit_and_manual_fall_cannot_resolve_or_restart_repeats():
+    engine = Engine()
+    engine.command("choking", 0)
+    qualify_caregiver(engine, began=1)
+    engine.command("fall", 4)
+    assert engine.snapshot.incident == Incident.ALERT_ACTIVE
+    assert engine.snapshot.choking and engine.snapshot.caregiver
+    assert "manual_fall_handled_by_caregiver" not in kinds(engine)
+    engine.observe(Evidence(5, paired_exit=True, caregiver_departed=True))
+    assert engine.snapshot.mode == Mode.AWAY
+    assert engine.snapshot.incident == Incident.ALERT_ACTIVE
+    assert engine.snapshot.choking and engine.snapshot.choking_silent
+    assert engine.snapshot.audio_priority == "choking_silent_simulated"
+    engine.tick(1000)
+    assert engine.snapshot.message_count == 1
+    assert "incident_resolved" not in kinds(engine)
+    engine.command("resolve", 1001)
+    assert not engine.snapshot.choking
+
+
+@pytest.mark.parametrize("mode", ["night", "fault", "away", "ready"])
+def test_choking_departure_restores_audio_independent_of_mode_without_resuming_repeats(mode):
+    engine = Engine()
+    engine.command("choking", 0)
+    qualify_caregiver(engine, began=1)
+    engine.observe(Evidence(4))  # Missing people retain silence and choking kind.
+    assert engine.snapshot.choking and engine.snapshot.caregiver
+    assert engine.snapshot.choking_silent
+    assert engine.snapshot.audio_priority == "caregiver_silent"
+    if mode == "night":
+        engine.command("night", 4)
+    engine.observe(Evidence(5, caregiver_departed=True, fault=mode == "fault",
+                            paired_exit=mode == "away"))
+    assert not engine.snapshot.caregiver
+    assert engine.snapshot.choking
+    assert engine.snapshot.incident == Incident.ALERT_ACTIVE
+    assert engine.snapshot.choking_silent
+    assert engine.snapshot.audio_priority == "choking_silent_simulated"
+    assert kinds(engine).count("would_restore_audio") == 1
+    assert engine.snapshot.mode == {"night": Mode.NIGHT, "fault": Mode.FAULT,
+                                   "away": Mode.AWAY, "ready": Mode.READY}[mode]
+    engine.tick(1000)
+    assert engine.snapshot.message_count == 1
+
+
+def test_reply_still_resolves_fall_and_cannot_mark_it_as_choking():
+    engine = Engine()
+    engine.command("fall", 0)
+    assert not engine.snapshot.choking
+    engine.command("reply", 1)
+    assert engine.snapshot.incident == Incident.RESOLVED
+    assert not engine.snapshot.choking
+    engine.tick(1000)
+    assert not sends(engine)
+
+
+@pytest.mark.parametrize("action", ["cancel", "resolve"])
+def test_manual_resolution_clears_choking_silence_and_new_incident_can_sound(action):
+    engine = Engine()
+    engine.command("choking", 0)
+    assert not engine.snapshot.choking_silent
+    qualify_caregiver(engine, began=1)
+    assert engine.snapshot.choking_silent
+    engine.observe(Evidence(4))
+    assert engine.snapshot.choking_silent and engine.snapshot.caregiver
+    engine.observe(Evidence(5, caregiver_departed=True))
+    assert engine.snapshot.audio_priority == "choking_silent_simulated"
+    assert kinds(engine).count("would_restore_audio") == 1
+    engine.command(action, 6)
+    assert not engine.snapshot.choking and not engine.snapshot.choking_silent
+    assert engine.snapshot.audio_priority == "idle"
+    assert kinds(engine).count("would_restore_audio") == 1  # Already restored on departure.
+    engine.command("choking", 7)
+    assert engine.snapshot.choking and not engine.snapshot.choking_silent
+    assert engine.snapshot.audio_priority == "choking_maximum_simulated"
+    engine.tick(67)
+    assert engine.snapshot.message_count == 2
+
+
+def test_reply_alone_stops_choking_repeats_without_caregiver_silence_latch():
+    engine = Engine()
+    engine.command("choking", 0)
+    engine.command("reply", 1)
+    assert not engine.snapshot.choking_silent
+    assert engine.snapshot.audio_priority == "choking_maximum_simulated"
+    engine.tick(1000)
+    assert engine.snapshot.choking and engine.snapshot.message_count == 1

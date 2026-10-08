@@ -94,6 +94,23 @@ The application is an assistive backup. It is not a medical device, professional
 
 ## 5. Safety timing and alert rules
 
+October 8 choking correction supersedes earlier caregiver-resolution wording:
+manual choking remains unresolved until explicit manual Cancel/Resolve. Neither
+upright recovery, caregiver entry, caregiver reply nor paired exit resolves it.
+Caregiver arrival or a valid caregiver reply stops message repeats durably, while
+the choking warning stays open. Caregiver presence still silences app audio.
+After reliable caregiver departure, this unresolved choking warning stays silent
+until manual Cancel/Resolve; saved computer audio restoration remains independent
+of armed state. Re-enabling test audio or changing volume cannot clear that latch.
+The choking popup requests foreground activation above ordinary windows, including
+fullscreen programs. Contact 911 has its own user-configurable global hotkey for
+VoiceAttack, initially unassigned, and works only during enabled test choking.
+Real exclusive-fullscreen focus and VoiceAttack delivery require desktop validation.
+Contact 911 in Milestone 3 is SIMULATION ONLY: visual feedback, no call, no network
+or dialer action, no automatic resolution. Any actual emergency-service contact
+requires a separately reviewed implementation and explicit approval.
+
+
 All times must be configuration values with the confirmed values below as defaults.
 
 | Event | Default behavior |
@@ -156,7 +173,9 @@ The state machine must be explicit and independently testable. UI labels may be 
 - `NORMAL_WARNING`: ordinary lean persisted; 10-second cancellation countdown is running.
 - `SEVERE_WARNING`: severe-collapse criteria were met; 8-second cancellation countdown is running.
 - `ALERT_ACTIVE`: at least one caregiver SMS was submitted to Twilio; repeat/acknowledgement monitoring is active.
-- `RESOLVED`: recovery, caregiver presence, inbound reply, or manual resolution ended the incident.
+- `RESOLVED`: recovery, caregiver presence, inbound reply, or manual resolution
+  ended a possible-fall incident. Choking enters this state only through manual
+  Cancel/Resolve; caregiver entry/reply only stops choking repeats.
 
 ### Important transitions
 
@@ -172,7 +191,8 @@ The state machine must be explicit and independently testable. UI labels may be 
 
 3. **Caregiver arrival**
    - Require two spatially separate, temporally stable human tracks for at least two seconds.
-   - Cancel pending warnings and stop repeat SMS messages.
+   - Cancel possible-fall warnings and stop repeat SMS messages. For choking,
+     stop repeats but retain the unresolved warning until manual Cancel/Resolve.
    - Enter `CAREGIVER_PRESENT`.
    - Immediately stop all Fall Detector speech and sounds and mute the active Windows output so audio from other applications is also silenced.
    - Preserve the previous Windows volume/mute state and application alert volume.
@@ -368,7 +388,9 @@ The immediate choking control needs strong visual separation from test and confi
 - For a choking trigger, temporarily unmute and force the active Windows output and application alert to maximum volume when no caregiver is present; restore the previous settings after resolution.
 - Provide one dominant **Cancel Alert** button.
 - Accept configured mouse, phone, keyboard, and voice cancellation inputs.
-- Allow automatic visual recovery and caregiver detection to cancel.
+- Allow automatic visual recovery and caregiver detection to cancel possible-fall
+  incidents only. Choking requires manual Cancel/Resolve; entry/reply stops repeats
+  while the choking popup stays open, including a simulated Contact 911 choice.
 - When caregiver detection occurs, stop Fall Detector audio and mute the active Windows output immediately without playing an arrival or dismissal sound. Caregiver-mode silence overrides the choking maximum-volume behavior.
 
 ### Windows notifications
@@ -598,6 +620,24 @@ The structure above is the target, not authorization to create source files with
 
 ### Milestone 3 — Accessible warning and controls
 
+October 8 clarification/approval: speech INPUT belongs to VoiceAttack, which
+presses user-configurable Windows global hotkeys. The monitor does not add a
+microphone listener or speech-recognition engine. No hotkeys are predetermined;
+key/modifier selectors are operable with separate pointer taps, and mappings may
+be applied, removed and explicitly saved at any time. Saved mappings restore on
+launch without altering other settings. This implements the secondary voice path;
+large buttons and automatic safety behavior remain independent of voice input.
+
+Milestone 3 implements test-session UI and explicitly opted-in local speech/sound
+OUTPUT at selected app volume. The test session starts disabled on each launch;
+saved hotkeys cannot enable it or audio. Windows mute/volume switching (including
+choking maximum and computer-wide caregiver silence/restoration) stays simulated
+until separately scoped/approved. Live diagnostic candidates remain disconnected.
+
+Development dashboard startup is foreground at Tyler's request. Restore the
+version-one minimized/tray-first default near project completion only after his
+approval; the optional `--start-minimized` switch retains that workflow now.
+
 - Implement the dashboard, tray icon, full-screen warning, speech, sounds, and one-action controls.
 - Add manual fall and immediate choking triggers in test mode.
 - Verify one-finger use.
@@ -619,6 +659,13 @@ The structure above is the target, not authorization to create source files with
 
 ### Milestone 6 — Supervised validation
 
+- Deferred by Tyler on October 8 until Milestone 6: test first warning appearance
+  and fall-to-choking transition while an ordinary window, borderless fullscreen
+  program and true exclusive-fullscreen program are active. Verify the popup comes
+  forward and Cancel plus simulated Contact 911 work through independently chosen
+  global hotkeys/VoiceAttack without using a mouse. Check display scaling/multiple
+  monitors, registration conflicts, disabled-session guards and recovery of focus.
+  Do not mark this accepted from offscreen tests; no real 911 call is part of it.
 - Run the complete scenario matrix below.
 - Begin with shadow mode that records what would have happened without sending SMS.
 - Review every false positive and missed simulated event.
@@ -661,7 +708,10 @@ Every case must be tested in ordinary and darkest lighting where relevant.
 - manual fall trigger and cancellation;
 - immediate choking trigger with no countdown;
 - ordinary alarms respect the selected alert volume without changing Windows volume;
-- choking temporarily unmutes and reaches maximum volume when no caregiver is present, then restores the previous Windows and application settings;
+- choking temporarily unmutes and reaches maximum volume before caregiver
+  silence, then restores the previous Windows and application settings; an
+  unresolved choking warning stays silent after caregiver departure until manual
+  Cancel/Resolve (actual Windows switching requires separate implementation approval);
 - the volume control and **Test Sound** are usable with one pointer/tap workflow.
 
 ### Caregiver and away behavior

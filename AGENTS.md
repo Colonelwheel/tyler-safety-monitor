@@ -3,6 +3,39 @@
 Read every project-authored Markdown document before implementation changes. Treat
 `FALL_DETECTOR_BLUEPRINT.md` as the approved requirements baseline.
 
+## Feature conflict audit and clarification
+
+- Tyler requested on October 8, 2026 that every feature be audited for conflicts
+  with existing features, controls, workflows and approved safety/privacy behavior.
+  Check interactions and regressions, not only isolated feature correctness.
+  Explain concrete conflicts and resolve them before calling the work complete.
+- Tyler explicitly prefers questions whenever the agent is even slightly unsure.
+  Ask concise clarifying questions rather than silently choosing an uncertain
+  interpretation, requirement or consequential implementation behavior. This
+  latest preference supersedes assumptions that he prefers avoiding questions.
+
+- Tyler requested on October 8 that every test-run report include concrete
+  examples of behaviors checked, with synthetic evidence distinguished from real
+  camera/audio/VoiceAttack validation. Do this consistently, not just totals.
+
+## Latest choking requirements
+
+October 8 choking correction supersedes earlier caregiver-resolution wording:
+manual choking remains unresolved until explicit manual Cancel/Resolve. Neither
+upright recovery, caregiver entry, caregiver reply nor paired exit resolves it.
+Caregiver arrival or a valid caregiver reply stops message repeats durably, while
+the choking warning stays open. Caregiver presence still silences app audio.
+After reliable caregiver departure, this unresolved choking warning stays silent
+until manual Cancel/Resolve; saved computer audio restoration remains independent
+of armed state. Re-enabling test audio or changing volume cannot clear that latch.
+The choking popup requests foreground activation above ordinary windows, including
+fullscreen programs. Contact 911 has its own user-configurable global hotkey for
+VoiceAttack, initially unassigned, and works only during enabled test choking.
+Real exclusive-fullscreen focus and VoiceAttack delivery require desktop validation.
+Contact 911 in Milestone 3 is SIMULATION ONLY: visual feedback, no call, no network
+or dialer action, no automatic resolution. Any actual emergency-service contact
+requires a separately reviewed implementation and explicit approval.
+
 ## Authorization and commits
 
 - Ask Tyler before repository source-code changes, unless he has already approved
@@ -28,6 +61,17 @@ Read every project-authored Markdown document before implementation changes. Tre
   manual choking alert. Explicit Cancel/Resolve, a valid caregiver reply, or
   confirmed caregiver presence stops repeats. Upright posture is not proof that
   choking has resolved; the immediate manual alert remains available in every mode.
+- Tyler approved Milestone 3 on October 8, 2026: test-only accessible warning
+  screens, one-pointer controls, explicitly enabled app-local speech/sounds and
+  configurable global hotkeys for VoiceAttack speech input. No predetermined
+  mappings or microphone listener. Hotkeys are editable anytime; an explicit save
+  creates new separate hotkey revisions and saved bindings restore on launch.
+  Test session and audible output still require separate enable actions per launch.
+  Windows volume/mute switching, real SMS, recording, startup/watchdog and new
+  personal collection remain outside this approval.
+- Tyler requested foreground dashboard startup during development on October 8.
+  Keep the default visible until he approves restoring tray-first behavior near
+  the end of the project. `--start-minimized` is an explicit optional override.
 - **Choose sensible, self-describing commit messages for this project. Do not ask
   Tyler for commit wording.** Tyler approved this ongoing preference on October 4,
   2026; it supersedes earlier instructions in the blueprint and handoff to agree

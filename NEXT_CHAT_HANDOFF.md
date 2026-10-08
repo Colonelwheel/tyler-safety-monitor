@@ -1,3 +1,158 @@
+# Next-chat handoff — Milestone 4: simulated messaging
+
+Updated October 8, 2026. Milestone 3 was explicitly approved and implemented with
+configurable VoiceAttack input hotkeys, test warnings and opted-in local speech/
+sounds. Speech input does not add a microphone listener. Read the tracking
+checkpoint first, then all project Markdown including `docs/MILESTONE_3.md`.
+
+## Latest choking correction
+
+October 8 choking correction supersedes earlier caregiver-resolution wording:
+manual choking remains unresolved until explicit manual Cancel/Resolve. Neither
+upright recovery, caregiver entry, caregiver reply nor paired exit resolves it.
+Caregiver arrival or a valid caregiver reply stops message repeats durably, while
+the choking warning stays open. Caregiver presence still silences app audio.
+After reliable caregiver departure, this unresolved choking warning stays silent
+until manual Cancel/Resolve; saved computer audio restoration remains independent
+of armed state. Re-enabling test audio or changing volume cannot clear that latch.
+The choking popup requests foreground activation above ordinary windows, including
+fullscreen programs. Contact 911 has its own user-configurable global hotkey for
+VoiceAttack, initially unassigned, and works only during enabled test choking.
+Real exclusive-fullscreen focus and VoiceAttack delivery require desktop validation.
+Contact 911 in Milestone 3 is SIMULATION ONLY: visual feedback, no call, no network
+or dialer action, no automatic resolution. Any actual emergency-service contact
+requires a separately reviewed implementation and explicit approval.
+
+## Latest scope and verification
+
+All **554 synthetic tests passed** in 12.10 seconds using the existing isolated
+Python environment, fresh unique scratch, redirected AppData, offscreen Qt,
+`-B` and pytest without its cache provider. `pip check` found no broken requirements.
+Tests use fake cameras, native registrations/foreground APIs, speech and audio.
+
+Concrete examples verified:
+- fixed warning deadlines continue through missing/uncertain evidence;
+- caregiver arrival/reply stops choking repeats without resolving the incident;
+- reliable departure restores saved simulated audio independently of armed state,
+  while unresolved choking warning audio remains silent through opt-in/volume changes;
+- only manual Cancel/Resolve clears choking; a subsequent new incident can sound;
+- Contact 911 button/hotkey requires active test choking and produces only visual
+  feedback, never a call, process launch, network action or incident resolution;
+- foreground requests occur on appearance/fall-to-choking and explicit actions,
+  while ordinary refresh ticks do not steal focus;
+- hotkey conflicts preserve the current registration and stale queued events are
+  rejected; newest append-only saves load correctly even if timestamps tie/regress;
+- previous five-action revisions load without rewriting them, with Contact 911
+  initially unassigned;
+- Test Sound stops warning audio but leaves the incident/popup active;
+- capture guards retain existing samples and the live candidate counter cannot
+  silence warning audio or turn into operational caregiver recognition.
+
+Independent source review found no remaining concrete conflict in those paths.
+Offscreen visual review with installed Segoe UI and enlarged text at 800x600
+confirmed visible Choking, Stop Audio, simulated Contact 911 and dominant Cancel,
+including post-contact confirmation. Essential actions stay outside the detail
+scroll area. This is layout evidence, not physical accessibility acceptance.
+`git diff --check` passed. Staged privacy review passed for all 26 source/test/document files; no private runtime data or binary artifacts are included.
+
+
+Global hotkeys have no predetermined bindings. Apply/Remove is editable anytime;
+explicit Save creates new independent append-only revisions. Saved bindings restore
+automatically on reopening; Test Session and audible output start disabled each
+launch and require separate user enables. Hotkeys cannot enable them implicitly.
+The dashboard now starts in the foreground during development. Restore the final
+tray-first default near completion only after Tyler approves it; the explicit
+`--start-minimized` option retains that workflow now.
+
+The manual test clock is independent of quiet Simulation replay and live camera.
+Full-screen test warnings keep dominant Cancel, simulated Contact 911 and
+Choking/Stop Audio reachable. Contact 911 supports a configurable global hotkey.
+Local speech/tones use selected app volume only; system mute/max-volume switching,
+computer-wide caregiver muting/restoration and all messaging remain simulated.
+Manual choking survives posture recovery; caregiver arrival/reply stops repeats
+without resolving. Only manual Cancel/Resolve ends choking. Caregiver silence
+persists through uncertainty and ends only on affirmative reliable departure,
+independently of arming/rearming. Unresolved choking warning audio remains
+silent after departure until manual Cancel/Resolve; saved computer audio restores.
+The live two-second counter remains diagnostic candidate evidence only.
+
+Actual audio and VoiceAttack/physical shortcut behavior remain pending a convenient
+user-controlled check. No caregiver participation, head movement or new collection
+is required. Personal safety thresholds, dim-light recognition, sustained tracking
+and the later supervised acceptance gates remain unvalidated. Do not restart a
+running monitor or discard unsaved edits/samples automatically.
+
+The existing Test Sound button explicitly stops warning speech/sounds and plays
+its single selected-volume tone, while retaining the incident/popup. Simulated
+caregiver silence still blocks that tone. This avoids competing app audio outputs.
+
+## Deferred fullscreen/VoiceAttack acceptance
+
+- Deferred by Tyler on October 8 until Milestone 6: test first warning appearance
+  and fall-to-choking transition while an ordinary window, borderless fullscreen
+  program and true exclusive-fullscreen program are active. Verify the popup comes
+  forward and Cancel plus simulated Contact 911 work through independently chosen
+  global hotkeys/VoiceAttack without using a mouse. Check display scaling/multiple
+  monitors, registration conflicts, disabled-session guards and recovery of focus.
+  Do not mark this accepted from offscreen tests; no real 911 call is part of it.
+
+## Preservation and next boundaries
+
+Authoritative checkout: C:\Codex Projects\Tyler Safety Monitor, main, existing
+origin. Keep OneDrive backup/global Python/dependency pins/public HTML/CSS unchanged.
+Use the existing isolated .venv and fresh unique synthetic scratch with -B and
+pytest -p no:cacheprovider. Existing profiles/features/settings/models remain
+unchanged. Do not merge ordinary Desktop and Codex-redirected AppData namespaces.
+New hotkey saves only occur via explicit user Save and never replace earlier files.
+
+Milestone 4 source/credential storage needs a separate proposal and approval. Build
+simulated delivery/error/deduplication/repeats/replies first. All real texts,
+including test SMS, remain deferred to Milestone 6 unless separately approved
+earlier. No recording/startup/watchdog/new personal collection is approved by this
+handoff. Actual caregiver work remains deferred normally to Milestone 6.
+
+Audit every feature for conflicts with existing behavior; ask whenever uncertain,
+as Tyler expressly requested October 8. Use Computer Use only for active inspection/
+actions and reset/end it before coding/testing/waiting. Verify, privacy-review
+staged files, update the next handoff/checkpoint and commit/push completed work.
+
+## Current launch
+
+Normal Desktop shortcut / `fall_detector/Start Monitor.cmd` opens the dashboard
+foreground during development. Movement-free: existing `--no-camera --show`
+command in the detector README. Test Alerts -> Enable Test Session -> Possible
+Fall -> Cancel Test Alert. Local output requires separate Enable Local Test Speech /
+Sounds. Hotkeys tab selects/applies/saves the user's own mappings for VoiceAttack.
+
+## Ready-to-use next-chat prompt
+
+> Continue Tyler Safety Monitor in C:\Codex Projects\Tyler Safety Monitor. Read
+> fall_detector/docs/TRACKING_REPAIR_CHECKPOINT.md first, then every project-authored
+> Markdown including AGENTS, blueprint, next handoff and MILESTONE_3.md. Inspect
+> Git/source/tests and propose Milestone 4 simulated messaging. Ask before source
+> changes or new credential/runtime scope; this handoff does not approve them.
+> Preserve manual-only choking resolution (arrival/reply stops repeats but keeps
+> the popup active), persistent choking warning silence after departure, and
+> simulated-only Contact 911 with a configurable VoiceAttack hotkey. Preserve fixed
+> timers, caregiver confirmation/departure/
+> audio priority, independent live candidate-only counter and configurable hotkeys.
+> Keep VoiceAttack for speech INPUT and local speech/sounds for OUTPUT. No microphone
+> listener. Saved hotkeys restore; test session/audio still opt in per launch.
+> Keep development startup foreground until Tyler approves restoring tray-first
+> near completion. Defer all real SMS, including test texts, and caregiver sessions
+> normally to Milestone 6 unless separately approved earlier. No recording,
+> Windows audio switching, watchdog/startup or new personal collection. Preserve
+> profiles/features/settings/models, AppData namespaces, OneDrive backup/global
+> Python/public website. Audit feature conflicts and ask whenever uncertain.
+> Use isolated .venv/fresh synthetic scratch, independent review, staged privacy,
+> updated handoff/checkpoint and sensible commit/push. Computer Use only while
+> actively inspecting/acting; reset before coding/testing/waiting.
+
+## Historical handoff and earlier evidence
+
+The material below is retained as historical evidence. Its older approval/status
+statements and launch defaults are superseded by the current handoff above.
+
 # Next-chat handoff — Milestone 3: accessible warnings and controls
 
 Updated: October 7, 2026.
