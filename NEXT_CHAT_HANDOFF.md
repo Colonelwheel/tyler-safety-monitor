@@ -1,11 +1,29 @@
-# Next-chat handoff — low-light tracking follow-up, then Milestone 4: simulated messaging
+# Next-chat handoff — Milestone 4 simulated messaging; queued low-light tracking follow-up
+
+## Next work: Milestone 4 can proceed independently of the lighting check
+
+Tyler clarified October 8 that simulated messaging can be proposed and, after
+separate source approval, implemented/tested with synthetic incidents while waiting
+for the matching nighttime lighting. The low-light head-position/trail repair
+remains queued for that session; it does not block simulated Milestone 4 work.
+
+Prepare message content/status, delivery/error simulation, duplicate prevention,
+one-minute repeats capped at ten messages, and simulated caregiver replies. Retain
+manual-only choking resolution and caregiver silence/repeat rules. No actual
+credentials or caregiver participation are needed for initial simulation. Propose
+secure credential storage separately before introducing its runtime scope. All
+real texts, including test texts, remain deferred to Milestone 6 unless Tyler
+separately approves an earlier test. This scheduling update approves documentation
+only, not Milestone 4 or tracking-repair source changes.
+
 
 ## Pending: low-light head-position jump — next matching nighttime session
 
 Requested October 8, 2026. Tyler reported low-light flickering followed by a blue
 head/trail line far from his actual head, as though a brief tracking dip teleported
 it. Investigate when he returns to this same lighting level (requested tomorrow
-night), before moving on to Milestone 4. The screenshot supports an apparent
+night). This follow-up does not block simulated Milestone 4 work. The screenshot
+supports an apparent
 tracking/display error; its detection, identity, stale-position or trail cause is
 not yet verified. Do not copy the private screenshot into the repository.
 
@@ -148,10 +166,12 @@ Sounds. Hotkeys tab selects/applies/saves the user's own mappings for VoiceAttac
 > Continue Tyler Safety Monitor in C:\Codex Projects\Tyler Safety Monitor. Read
 > fall_detector/docs/TRACKING_REPAIR_CHECKPOINT.md first, then every project-authored
 > Markdown including AGENTS, blueprint, next handoff and MILESTONE_3.md. Inspect
-> Git/source/tests. First inspect the pending low-light head-position/trail jump with
-> Tyler at matching lighting and propose a repair; ask before implementing it.
-> Then propose Milestone 4 simulated messaging. Ask before source
-> changes or new credential/runtime scope; this handoff does not approve them.
+> Git/source/tests and propose Milestone 4 simulated messaging independently of
+> the queued low-light check; synthetic development need not wait for lighting.
+> Inspect the head-position/trail jump with Tyler when matching lighting returns.
+> Ask before either source implementation and before new credential/runtime scope.
+> This handoff does not approve source
+> changes, real SMS or tracking-repair implementation.
 > Preserve manual-only choking resolution (arrival/reply stops repeats but keeps
 > the popup active), persistent choking warning silence after departure, and
 > simulated-only Contact 911 with a configurable VoiceAttack hotkey. Preserve fixed
