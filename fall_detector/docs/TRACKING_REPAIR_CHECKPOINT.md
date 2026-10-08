@@ -1,5 +1,39 @@
 # Tracking repair checkpoint
 
+## October 8 continuation: reviewed Milestone 4 proposal, approval pending
+
+Read-only proposal and independent integration review are recorded in
+fall_detector/docs/MILESTONE_4.md. Simulated messaging can proceed separately
+from the queued matching-light head/trail check after source approval. No source,
+credentials, normal runtime storage, real SMS or tracking repair is approved.
+
+Tyler confirmed that fall-to-choking keeps the existing immediate choking intent
+and a new ten-message budget. Failure-count policy remains pending: count all
+scheduled attempts (recommended) versus accepted messages with separate bounded
+retries. The current engine counts intents, not delivery. Use stable session,
+alert-episode and effect identities and keep Engine as the sole repeat scheduler.
+A fake provider and in-memory ledger need no credentials or new AppData namespace.
+
+Current baseline main at 4cf3ac3 was clean. Fresh verification passed all 554
+synthetic tests in 19.77 seconds and pip check found no broken requirements.
+Examples: missing evidence preserves fixed deadlines; valid replies retain the
+choking popup; reliable departure restores simulated saved audio while unresolved
+choking warning output stays silent through volume/audio re-enable; Contact 911
+remains visual-only; saved hotkeys do not enable the test session or audio.
+Tests used fake devices/output and offscreen Qt, existing .venv, fresh redirected
+scratch and disabled bytecode/pytest cache. No new physical validation occurred.
+
+Independent review confirmed that replies must not imply caregiver presence or
+set its audio latch, and fake delivery success must not resolve choking. Keep
+quiet replay/session clocks, candidate-only diagnostics and all existing controls
+isolated. Cross-process durable deduplication is still future runtime scope.
+No Computer Use session was opened; the running monitor was not restarted.
+
+Next: resolve the pending failure policy and obtain explicit approval for the
+proposal's source/test scope. Preserve the queued lighting investigation and all
+existing milestone boundaries. This documentation update authorizes neither.
+
+
 ## Next work: Milestone 4 can proceed independently of the lighting check
 
 Tyler clarified October 8 that simulated messaging can be proposed and, after
