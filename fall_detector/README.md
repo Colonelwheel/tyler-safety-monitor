@@ -47,6 +47,22 @@ their later implementation.
 
 ## Calibration and replay
 
+### Scrolling and individual exclusion masks
+
+Wheel/remote scrolling over closed dropdowns, number fields and their text
+editors scrolls the containing panel instead of changing options. Open a dropdown
+or use numeric arrows/typing deliberately to change a value. **Camera number •
+0 = first camera** selects the Windows camera index, not a safety setting.
+
+To remove one exclusion: choose **Remove Selected Mask**, tap inside its numbered
+rectangle in the live preview, and confirm **Yes**. Other masks and the ROI stay
+intact; **No** retains everything. If masks overlap at the tap, choose a part that
+belongs only to the intended mask. Fully overlapping masks cannot be chosen by
+this tap tool; it refuses to guess. **Undo Last Mask** still removes the newest
+mask. **Save Settings** remains a separate action creating a new local revision.
+Scene changes invalidate old tracking/selection evidence; do not remove a mask
+during feature capture or replay.
+
 The **Calibration / Replay** tab provides **Synthetic Replay Demo** without
 requiring movement, a recording, a model run, or camera access. To open the
 dashboard with the camera paused, launch from PowerShell at the repository root:

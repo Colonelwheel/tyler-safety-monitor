@@ -11,6 +11,7 @@ from PySide6.QtWidgets import (
 
 from .replay import load_feature_sequence
 from .simulation_replay import SimulationRunner, builtin_scenarios, feature_scenario
+from .scrolling import PanelWheelGuard
 
 
 def _button(label, callback):
@@ -96,6 +97,7 @@ class SimulationPanel(QWidget):
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
         self.scroll.setWidget(panel)
+        self.wheel_guard = PanelWheelGuard(self.scroll)
         layout.addWidget(self.scroll, 1)
         self.timer = QTimer(self)
         self.timer.setInterval(50)

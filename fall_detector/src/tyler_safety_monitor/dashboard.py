@@ -12,7 +12,7 @@ from PySide6.QtCore import QEvent, QRectF, Qt, QTimer, Signal
 from PySide6.QtGui import QAction, QColor, QIcon, QImage, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import (
     QApplication, QComboBox, QGridLayout, QHBoxLayout, QLabel, QMainWindow,
-    QMenu, QPushButton, QScrollArea, QSpinBox, QSystemTrayIcon, QTabWidget, QVBoxLayout, QWidget,
+    QMenu, QMessageBox, QPushButton, QScrollArea, QSpinBox, QSystemTrayIcon, QTabWidget, QVBoxLayout, QWidget,
 )
 
 from .audio import TestSound
@@ -21,6 +21,7 @@ from .scene import Rect, SceneConfig
 from .settings import AppSettings, load_settings, save_settings
 from .tracking import PersonTracker
 from .caregiver_status import CaregiverStatusCounter
+from .scrolling import PanelWheelGuard
 
 
 class Preview(QWidget):
@@ -70,10 +71,12 @@ class Preview(QWidget):
                           rect.width * area.width(), rect.height * area.height())
         painter.setPen(QPen(QColor("#58dfb1"), 3))
         painter.drawRect(box(self.scene.roi))
-        for exclusion in self.scene.exclusions:
+        for index, exclusion in enumerate(self.scene.exclusions, 1):
             painter.fillRect(box(exclusion), QColor(5, 5, 5, 200))
             painter.setPen(QPen(QColor("#ffbd66"), 3))
             painter.drawRect(box(exclusion))
+            region = box(exclusion)
+            painter.drawText(int(region.x() + 6), int(region.y() + 20), f"Mask {index}")
         for name, rect in self.zones.items():
             reviewed = name in self.reviewed_zones
             color = QColor("#8bdd98" if reviewed else "#df8cff")
@@ -240,6 +243,7 @@ class Dashboard(QMainWindow):
         controls.addWidget(self.health)
         controls.addWidget(candidates_note)
         controls.addWidget(legend)
+        controls.addWidget(QLabel("Camera number • 0 = first camera"))
         self.camera_index = QSpinBox()
         self.camera_index.setRange(0, 20)
         self.camera_index.setValue(self.settings.camera_index)
@@ -271,6 +275,7 @@ class Dashboard(QMainWindow):
         controls.addWidget(button("Cancel Region Edit", self.cancel_edit))
         controls.addWidget(button("Full Frame ROI", self.full_roi))
         controls.addWidget(button("Undo Last Mask", self.undo_mask))
+        controls.addWidget(button("Remove Selected Mask", lambda: self.begin_edit("remove_mask")))
         self.edit_status = QLabel("Review the picture reflection and caregiver-entry area before use.")
         self.edit_status.setWordWrap(True)
         controls.addWidget(self.edit_status)
@@ -303,11 +308,13 @@ class Dashboard(QMainWindow):
         scroll.setWidgetResizable(True)
         scroll.setWidget(panel)
         scroll.setMinimumWidth(350)
+        self.camera_wheel_guard = PanelWheelGuard(scroll)
         from .calibration_ui import MilestoneTools
         self.tools = MilestoneTools(self)
         tools_scroll = QScrollArea()
         tools_scroll.setWidgetResizable(True)
         tools_scroll.setWidget(self.tools)
+        self.calibration_wheel_guard = PanelWheelGuard(tools_scroll)
         self.tabs = QTabWidget()
         self.tabs.setMinimumWidth(440)
         self.tabs.addTab(scroll, "Camera / Masks")
@@ -551,7 +558,14 @@ class Dashboard(QMainWindow):
             return
         self.edit_mode = mode
         self.preview.pending_corner = None
-        self.edit_status.setText("Tap the first corner in the preview, then the opposite corner.")
+        if mode == "remove_mask":
+            if not self.settings.scene.exclusions:
+                self.edit_mode = None
+                self.edit_status.setText("No exclusion masks to remove.")
+            else:
+                self.edit_status.setText("Tap inside the numbered mask to remove, then confirm. Other masks stay intact.")
+        else:
+            self.edit_status.setText("Tap the first corner in the preview, then the opposite corner.")
         self.preview.update()
 
     def cancel_edit(self) -> None:
@@ -562,6 +576,9 @@ class Dashboard(QMainWindow):
 
     def select_corner(self, x: float, y: float) -> None:
         if self.edit_mode is None:
+            return
+        if self.edit_mode == "remove_mask":
+            self.remove_mask_at(x, y)
             return
         if self.preview.pending_corner is None:
             self.preview.pending_corner = (x, y)
@@ -587,6 +604,40 @@ class Dashboard(QMainWindow):
             except ValueError as error:
                 self.edit_status.setText(f"Choose a nonempty region: {error}")
         self.preview.update()
+
+    def confirm_mask_removal(self, index: int) -> bool:
+        dialog = QMessageBox(self)
+        dialog.setWindowTitle("Remove selected exclusion mask?")
+        dialog.setText(f"Remove Mask {index + 1} from the current scene?\n"
+                       "All other masks remain. Saved settings revisions are unchanged.\n"
+                       "Use Save Settings separately to retain this change.")
+        dialog.setStandardButtons(QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No)
+        dialog.setDefaultButton(QMessageBox.StandardButton.No)
+        for control in dialog.buttons():
+            control.setMinimumHeight(60)
+        return dialog.exec() == QMessageBox.StandardButton.Yes
+
+    def remove_mask_at(self, x: float, y: float) -> None:
+        scene = self.settings.scene
+        matches = [index for index, mask in enumerate(scene.exclusions) if mask.contains(x, y)]
+        if not matches:
+            self.edit_status.setText("No mask at that point. Tap inside the mask you want to remove.")
+            return
+        if len(matches) > 1:
+            self.edit_status.setText("Masks overlap here. Tap a part belonging to only the mask you want; none removed.")
+            return
+        index = matches[0]
+        confirmed = self.confirm_mask_removal(index)
+        valid = (self.edit_mode == "remove_mask" and self.settings.scene == scene
+                 and self.tools.player is None and self.tools.state not in {"delay", "capturing"})
+        self.cancel_edit()
+        if not confirmed:
+            self.edit_status.setText("Removal canceled; existing masks retained.")
+        elif not valid:
+            self.edit_status.setText("Scene or capture changed during confirmation; no mask removed.")
+        else:
+            self.set_scene(replace(scene, exclusions=scene.exclusions[:index] + scene.exclusions[index + 1:]))
+            self.edit_status.setText(f"Mask {index + 1} removed; other masks retained. Save Settings separately to keep this change.")
 
     def set_scene(self, scene: SceneConfig) -> None:
         if self.tools.player is not None:

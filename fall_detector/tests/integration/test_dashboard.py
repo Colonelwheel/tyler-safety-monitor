@@ -9,8 +9,8 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
 import numpy as np
 import pytest
-from PySide6.QtCore import QPoint, Qt
-from PySide6.QtGui import QFont, QFontDatabase
+from PySide6.QtCore import QPoint, QPointF, Qt
+from PySide6.QtGui import QFont, QFontDatabase, QWheelEvent
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QPushButton, QSystemTrayIcon
 
@@ -387,6 +387,145 @@ def test_tools_controls_are_one_pointer_and_global_volume_stop_remain_visible(wi
     for text in ("Decrease", "Increase", "Test Sound"):
         controls = [c for c in window.findChildren(QPushButton) if c.text() == text]
         assert len(controls) == 1 and controls[0].isVisible()
+
+
+@pytest.mark.parametrize("name,tab", [("camera_index", 0), ("backend", 0), ("fps", 0),
+    ("face_score", 0), ("margin", 1), ("step", 1), ("candidate", 1), ("zone", 1), ("selector", 2)])
+def test_wheel_over_focused_options_scrolls_panel_without_changing_values(window, application, name, tab):
+    window.resize(1260, 640)
+    window.tabs.setCurrentIndex(tab)
+    window.show()
+    application.processEvents()
+    owner = window if tab == 0 else window.tools if tab == 1 else window.simulation
+    control = getattr(owner, name)
+    scroll = window.tabs.widget(tab) if tab < 2 else window.simulation.scroll
+    scroll.ensureWidgetVisible(control)
+    control.setFocus()
+    application.processEvents()
+    bar = scroll.verticalScrollBar()
+    bar.setValue(bar.maximum() // 2)
+    before = bar.value()
+    selected = control.value() if hasattr(control, "value") else control.currentIndex()
+    point = QPointF(control.rect().center())
+    event = QWheelEvent(point, QPointF(control.mapToGlobal(control.rect().center())), QPoint(), QPoint(0,-120),
+                        Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier, Qt.ScrollPhase.NoScrollPhase, False)
+    QApplication.sendEvent(control, event)
+    application.processEvents()
+    assert (control.value() if hasattr(control, "value") else control.currentIndex()) == selected
+    assert bar.value() > before
+    window.hide()
+
+
+@pytest.mark.parametrize("name,tab", [("camera_index", 0), ("margin", 1)])
+@pytest.mark.parametrize("pixels", [False, True])
+def test_numeric_text_editor_forwards_wheel_and_touchpad_input(window, application, name, tab, pixels):
+    window.tabs.setCurrentIndex(tab)
+    window.show()
+    application.processEvents()
+    control = getattr(window if tab == 0 else window.tools, name)
+    editor = control.lineEdit()
+    scroll = window.tabs.widget(tab)
+    bar = scroll.verticalScrollBar()
+    bar.setValue(bar.maximum() // 2)
+    before = bar.value()
+    editor.setFocus()
+    selected = control.value()
+    point = QPointF(editor.rect().center())
+    event = QWheelEvent(point, QPointF(editor.mapToGlobal(editor.rect().center())),
+                        QPoint(0, -35) if pixels else QPoint(), QPoint() if pixels else QPoint(0,-120),
+                        Qt.MouseButton.NoButton, Qt.KeyboardModifier.NoModifier, Qt.ScrollPhase.ScrollUpdate, False)
+    QApplication.sendEvent(editor, event)
+    application.processEvents()
+    assert control.value() == selected and bar.value() > before
+    window.hide()
+
+
+def test_protected_controls_still_allow_deliberate_selection_and_typing(window, application):
+    window.show()
+    scroll = window.tabs.widget(0)
+    scroll.ensureWidgetVisible(window.fps)
+    window.fps.showPopup()
+    application.processEvents()
+    QTest.keyClick(window.fps.view(), Qt.Key.Key_Home)
+    QTest.keyClick(window.fps.view(), Qt.Key.Key_Return)
+    assert window.fps.currentData() == 30
+    scroll.ensureWidgetVisible(window.camera_index)
+    editor = window.camera_index.lineEdit()
+    editor.selectAll()
+    QTest.keyClicks(editor, "2")
+    QTest.keyClick(editor, Qt.Key.Key_Return)
+    assert window.camera_index.value() == 2
+    window.hide()
+
+
+@pytest.mark.parametrize("index,point", [(0, (.2,.2)), (1, (.7,.2))])
+def test_remove_chosen_mask_preserves_other_masks_roi_and_saved_files(window, monkeypatch, index, point):
+    masks = (Rect(.1,.1,.2,.2), Rect(.6,.1,.2,.2))
+    scene = SceneConfig(Rect(.05,.05,.9,.9), masks)
+    window.set_scene(scene)
+    approvals = []
+    monkeypatch.setattr(window, "confirm_mask_removal", lambda chosen: approvals.append(chosen) or True)
+    monkeypatch.setattr(ui, "save_settings", lambda *args: pytest.fail("Removal must not save settings"))
+    window.begin_edit("remove_mask")
+    window.select_corner(*point)
+    assert approvals == [index]
+    assert window.settings.scene.roi == scene.roi
+    assert window.settings.scene.exclusions == masks[:index] + masks[index+1:]
+    assert window.preview.scene == window.settings.scene and window.edit_mode is None
+
+
+def test_mask_removal_cancel_miss_and_overlap_keep_every_mask(window, monkeypatch):
+    scene = SceneConfig(exclusions=(Rect(.1,.1,.4,.4), Rect(.3,.3,.4,.4)))
+    window.set_scene(scene)
+    approvals = []
+    monkeypatch.setattr(window, "confirm_mask_removal", lambda index: approvals.append(index) or False)
+    window.begin_edit("remove_mask")
+    window.select_corner(.9,.9)
+    window.select_corner(.4,.4)
+    assert not approvals and window.settings.scene == scene
+    assert window.edit_mode == "remove_mask" and "overlap" in window.edit_status.text()
+    window.select_corner(.2,.2)
+    assert approvals == [0] and window.settings.scene == scene and window.edit_mode is None
+
+
+@pytest.mark.parametrize("change", ["scene", "capture", "replay", "cancel"])
+def test_mask_confirmation_cannot_remove_from_changed_scene_or_session(window, monkeypatch, change):
+    scene = SceneConfig(exclusions=(Rect(.1,.1,.2,.2), Rect(.6,.1,.2,.2)))
+    window.set_scene(scene)
+    def confirm(index):
+        if change == "scene":
+            window.set_scene(SceneConfig(exclusions=scene.exclusions[::-1]))
+        elif change == "capture":
+            window.tools.state = "capturing"
+        elif change == "replay":
+            window.tools.player = SimpleNamespace(playing=False)
+        else:
+            window.cancel_edit()
+        return True
+    monkeypatch.setattr(window, "confirm_mask_removal", confirm)
+    window.begin_edit("remove_mask")
+    window.select_corner(.2,.2)
+    assert len(window.settings.scene.exclusions) == 2
+    assert "no mask removed" in window.edit_status.text()
+    window.tools.player = None
+    window.tools.state = "idle"
+
+
+@pytest.mark.parametrize("state", ["delay", "capturing"])
+def test_mask_removal_is_blocked_during_feature_collection(window, state):
+    window.tools.state = state
+    window.begin_edit("remove_mask")
+    assert window.edit_mode is None and "Stop / Review" in window.edit_status.text()
+    window.tools.state = "idle"
+
+
+def test_mask_removal_empty_scene_and_replay_do_not_start_edit(window):
+    window.begin_edit("remove_mask")
+    assert window.edit_mode is None and "No exclusion" in window.edit_status.text()
+    window.tools.player = SimpleNamespace(playing=False)
+    window.begin_edit("remove_mask")
+    assert window.edit_mode is None and "Return to live" in window.edit_status.text()
+    window.tools.player = None
 
 
 def test_profile_provenance_uses_owned_camera_instead_of_next_launch_settings(window, monkeypatch):

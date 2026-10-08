@@ -1,5 +1,32 @@
 # Tracking repair checkpoint
 
+## Latest October 7 follow-up: scroll protection and selected-mask removal
+
+Tyler approved repairing wheel input intercepted by right-panel option fields,
+and explicitly approved a button/tap/confirm individual-mask tool. Active Desktop
+inspection verified the prior layout repair is loaded and the picture is clear.
+During the scrolling demonstration the requested FPS changed 15 -> 30; Tyler
+explicitly chose to keep 30. The agent did not save settings/restart camera,
+capture features or remove any real masks. Computer Use was reset before coding.
+
+The new guard redirects wheel/pixel gestures from closed dropdowns and numeric
+editors into their containing Camera/Calibration/Simulation scroll panel.
+Deliberate popup selection and numeric typing/arrows remain available. Camera
+index 0 now has a visible first-camera label. Masks are numbered; Remove Selected
+Mask requests a tap and a default-No 60-pixel confirmation before deleting only
+that index. Misses/overlaps do not delete anything. Fully overlapping masks cannot
+be chosen by this tap tool. Capture/replay and changed-scene/session guards are
+rechecked after confirmation. Saving is separate; saved revisions remain intact.
+
+All **457 synthetic tests passed**, including focused controls, inner numeric
+editors, pixel-only input, deliberate option changes, earlier/later removal,
+cancel/miss/overlap and confirmation changes. New source live behavior remains
+pending the next convenient Desktop restart. Preserve unsaved session data.
+Independent review found no concrete defect; the seven-file staged privacy and
+whitespace checks passed. Public website and dependency pins are unchanged.
+Milestone 3 remains unapproved; actual texts, including test SMS, remain deferred
+to Milestone 6 unless separately approved earlier.
+
 ## October 7 follow-up: dashboard layout repair
 
 Tyler requested correction of live-view obstruction and separately approved

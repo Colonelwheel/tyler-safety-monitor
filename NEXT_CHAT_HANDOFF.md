@@ -2,6 +2,34 @@
 
 Updated: October 7, 2026.
 
+## Latest follow-up: scroll protection and individual mask removal
+
+Tyler requested and approved fixing right-panel wheel input changing options,
+then separately approved individual exclusion removal. The live inspection saw
+requested FPS switch from 15 to 30 during scrolling; Tyler chose to keep 30.
+No setting save, camera retry, capture or real mask removal was performed by the
+agent. The previous camera-layout repair is now observed in the ordinary Desktop
+launch: the picture is unobstructed and counter/control placement is visible.
+This does not establish continuous tracking accuracy.
+
+New PanelWheelGuard protects all closed combos/spin fields and numeric editors
+in Camera, Calibration and Simulation. Wheel and pixel-only input scroll the
+panel while deliberate popup selection, typing and arrows remain available.
+Camera number 0 is visibly labeled as the first camera. Numbered masks support
+Remove Selected Mask -> tap -> default-No confirmation with 60-pixel buttons.
+Only one index is removed; other masks/ROI and saved revisions remain intact.
+Overlapping taps are rejected rather than guessing; fully overlapping masks
+cannot be selected by this tap tool. Capture/replay and changed-scene confirmation
+guards prevent stale deletion. Save Settings remains separately explicit.
+
+All **457 synthetic tests passed** in fresh isolated scratch. Computer Use was
+reset after active inspection, before coding/testing. New source still needs a
+user-convenient restart/live scroll check; preserve unsaved settings/features.
+Independent review found no concrete defect; the seven-file staged privacy and
+whitespace checks passed. Public website and dependency pins are unchanged.
+Milestone 3 and new personal capture remain unapproved. All real texts, including
+test messages, stay deferred to Milestone 6 unless separately approved earlier.
+
 ## Current handoff: Milestone 2 complete within its simulated scope
 
 Tyler approved the simulated Milestone 2 source, interface, replay, tests and
