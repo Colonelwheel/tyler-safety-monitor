@@ -605,7 +605,9 @@ The structure above is the target, not authorization to create source files with
 ### Milestone 4 — Twilio messaging
 
 - Store secrets securely.
-- Send explicitly labeled test messages first.
+- Build and verify against simulated messaging first. Tyler requested on
+  October 7, 2026 that all real texts, including clearly labeled test messages,
+  be deferred until Milestone 6 unless he separately approves an earlier test.
 - Implement delivery/error status, message deduplication, one-minute repetition, ten-message maximum, and inbound-reply acknowledgement.
 - Arm real messaging only after Tyler verifies the recipient and message text.
 
@@ -620,6 +622,8 @@ The structure above is the target, not authorization to create source files with
 - Run the complete scenario matrix below.
 - Begin with shadow mode that records what would have happened without sending SMS.
 - Review every false positive and missed simulated event.
+- After recipient and message review, perform separately approved, explicitly
+  labeled real test messages and reply checks before automatic live arming.
 - Enable live SMS only after Tyler accepts the observed behavior.
 
 ### Milestone 7 — Android cellular fallback

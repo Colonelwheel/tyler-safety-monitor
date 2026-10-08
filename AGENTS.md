@@ -44,6 +44,12 @@ Read every project-authored Markdown document before implementation changes. Tre
 
 ## Caregiver participation schedule
 
+- Tyler requested on October 7, 2026 that all real SMS, including test texts,
+  stay deferred until Milestone 6 supervised validation unless he separately
+  approves an earlier test. Milestone 4 uses simulated messaging first. Verify
+  recipient/text before approved real tests; automatic live arming still needs
+  completed acceptance gates and explicit approval.
+
 - Tyler requested on October 5, 2026 that actual caregiver involvement be deferred
   until the latest practical development point, normally consolidated with
   Milestone 6 supervised validation. Build tooling and simulated caregiver tests
@@ -55,6 +61,11 @@ Read every project-authored Markdown document before implementation changes. Tre
   movements. Complete required real caregiver validation before enabling live alerts.
 
 ## Preservation and scope
+
+- Use Computer Use only during active UI inspection or actions. End/reset the
+  automation session before coding, tests, research or waiting unless a current
+  UI action needs it. Do not leave the computer skill active in the background
+  during development. Keep the user's monitor session/data intact.
 
 - Leave the existing Python installations and their installed packages unchanged.
   Install detector dependencies only in an isolated virtual environment.

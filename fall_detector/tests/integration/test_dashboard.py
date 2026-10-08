@@ -10,6 +10,7 @@ os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 import numpy as np
 import pytest
 from PySide6.QtCore import QPoint, Qt
+from PySide6.QtGui import QFont, QFontDatabase
 from PySide6.QtTest import QTest
 from PySide6.QtWidgets import QApplication, QPushButton, QSystemTrayIcon
 
@@ -686,6 +687,51 @@ def test_tracking_diagnostics_do_not_force_global_controls_off_screen(window, ap
     for label in ("Decrease", "Increase", "Test Sound", "Stop Test Sound"):
         control = next(b for b in window.findChildren(QPushButton) if b.text() == label)
         assert control.mapTo(window, QPoint(0, 0)).y() + control.height() <= window.height()
+
+
+@pytest.mark.parametrize("width,height,font_size", [(1260, 640, 16), (1100, 600, 16), (1260, 640, 20)])
+def test_live_picture_is_unobstructed_with_wrapped_diagnostics(window, application, width, height, font_size):
+    # Codex's offscreen Qt can otherwise substitute square glyphs with inflated
+    # widths. Load the existing Windows UI font read-only for realistic scaling.
+    font_file = Path("C:/Windows/Fonts/segoeui.ttf")
+    if font_file.is_file():
+        font_id = QFontDatabase.addApplicationFont(str(font_file))
+        assert font_id >= 0
+        window.setFont(QFont(QFontDatabase.applicationFontFamilies(font_id)[0]))
+    window.setStyleSheet(window.styleSheet() + f"\nQWidget {{font-size:{font_size}px;}}")
+    window.preview.set_frame(np.zeros((108, 192, 3), dtype=np.uint8))
+    window.health.setText("Camera: LIVE • Camera live\n1920 × 1080 • MJPG • captured 14.5 FPS / received 14.5 FPS\nBrightness 102 • blur metric 956 • read failures 0 • reconnects 0")
+    window.pose_status.setText("Pose: two-person capacity; candidates only • submitted 6460 / completed 6426 / skipped 34")
+    window.caregiver_status.setText("LIVE SECOND-PERSON DIAGNOSTIC • confirming • candidate P2 • 1.2 / 2.0 seconds\nResets: 4 • Last reset: Separate candidate is missing or ambiguous. No alert suppression or audio muting.")
+    window.resize(1800, height)
+    window.show()
+    application.processEvents()
+    assert window._volume_columns == 4
+    window.resize(width, height)
+    application.processEvents()
+    central = window.centralWidget()
+    assert window.width() <= width and window.height() <= height
+    picture = window.preview.rect().translated(window.preview.mapTo(central, QPoint(0, 0)))
+    assert central.rect().contains(picture)
+    assert window.preview.image_rect().height() >= 240
+    controls = [window.capture_stop] + [b for b in window.findChildren(QPushButton)
+        if b.text() in {"Decrease", "Increase", "Test Sound", "Stop Test Sound"}]
+    for control in controls:
+        bounds = control.rect().translated(control.mapTo(central, QPoint(0, 0)))
+        assert control.height() >= 60
+        assert central.rect().contains(bounds)
+        assert not picture.intersects(bounds)
+    for index in range(window.tabs.count()):
+        window.tabs.setCurrentIndex(index)
+        application.processEvents()
+        assert window.width() <= width and window.height() <= height
+        counter = window.caregiver_status.rect().translated(window.caregiver_status.mapTo(central, QPoint(0, 0)))
+        assert window.caregiver_status.isVisible() and central.rect().contains(counter)
+        assert not picture.intersects(counter)
+    for control in (window.simulation.cancel_button, window.simulation.play_button):
+        bounds = control.rect().translated(control.mapTo(central, QPoint(0, 0)))
+        assert control.height() >= 60 and central.rect().contains(bounds)
+    window.hide()
 
 
 def test_selected_candidate_survives_gap_without_silent_reassignment(window):

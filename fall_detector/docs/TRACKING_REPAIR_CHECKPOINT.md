@@ -1,5 +1,32 @@
 # Tracking repair checkpoint
 
+## October 7 follow-up: dashboard layout repair
+
+Tyler requested correction of live-view obstruction and separately approved
+inspection of the current monitor screenshot. The native short/scaled window
+showed controls overlapping the picture. Detailed statistics/notes now move
+to Camera / Masks, with compact camera state and pose status still visible.
+The caregiver evidence counter remains visible above every side tab. Responsive
+volume controls retain 60-pixel height and readable captions. Simulation details
+scroll independently of current state/countdown and Cancel/Play.
+All **433 synthetic tests passed**, including picture/control non-overlap,
+requested window bounds, wide-to-small resizing, enlarged text and persistent
+essential controls. The isolated dependency check passed; independent review
+found no remaining concrete layout regression.
+The eight-file staged privacy review and whitespace check passed. Public website,
+dependency pins and all private runtime data remain unchanged.
+
+Computer Use was reset after the active inspection before continued coding.
+Only synthetic frames were saved for layout QA; no real imagery/features were
+saved. The running Desktop monitor retains its existing session and still needs
+a user-convenient restart for live verification of the new layout. Do not discard
+unsaved data/settings to restart. Milestone 3 remains unapproved.
+
+Tyler requested durable deferral of all real SMS, including test texts, until
+Milestone 6 unless separately approved earlier. This is now in AGENTS, the
+blueprint's milestone instructions and the next handoff. Milestone 4 remains
+simulated until approved supervised messaging checks.
+
 ## October 7, 2026: approved simulated Milestone 2 implementation
 
 Tyler approved Milestone 2's simulated source/replay/interface/tests/documentation

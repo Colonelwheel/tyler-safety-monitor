@@ -41,6 +41,34 @@ dim-light validation is deferred until those conditions return. No new capture,
 movement request, caregiver session, model fusion or confidence-policy acceptance
 is implied. Experimental face comparison remains separate from Full calibration.
 
+## October 7 follow-up: live-view layout repair and text deferral
+
+Tyler approved fixing controls/status text obstructing the live camera view.
+The ordinary Desktop screenshot showed overlap on the short/scaled window.
+Detailed camera statistics, candidate notes and landmark legend now live in
+Camera / Masks; compact camera status and pose faults stay visible. The live
+two-second counter stays above the side tabs. Volume controls use one row when
+captions fit and two rows on narrower/scaled layouts. Simulation explanations
+and effect details scroll while current state/countdown and Cancel/Play stay
+visible. No tracking, capture, saved settings or alert behavior changed.
+
+Synthetic geometry checks cover window bounds, picture/control separation,
+usable preview size, large buttons, persistent counter on all tabs and simulation
+Cancel/Play at 1260x640, 1100x600 and enlarged text. Actual post-restart Desktop
+layout remains to be verified. Preserve current unsaved edits/features and do
+not automatically restart the running monitor just to load this repair.
+The final isolated suite passed **433 tests**, the dependency check passed and
+independent review found no remaining concrete layout regression. Synthetic
+preview QA used the existing Windows UI font; actual camera imagery was not saved.
+The eight-file staged privacy review and whitespace check passed; public website
+files and dependency pins are unchanged.
+
+Tyler explicitly requested durable rules: end/reset Computer Use before coding
+or waiting unless an active UI action needs it. Defer **all real texts, including
+test texts, to Milestone 6** unless separately approved earlier. Milestone 4
+builds simulated messaging first; real recipient/message checks and supervised
+delivery/reply tests precede separately approved automatic live arming.
+
 ## Ready-to-use next-chat prompt
 
 > Continue Tyler Safety Monitor in C:\Codex Projects\Tyler Safety Monitor. Read
@@ -63,6 +91,10 @@ is implied. Experimental face comparison remains separate from Full calibration.
 > Propose any actual audio work explicitly before implementation. No caregiver
 > session is required now; actual involvement stays deferred to Milestone 6 unless
 > a concrete earlier dependency is explained and agreed upon.
+> Keep all real SMS, including test texts, deferred to Milestone 6 unless Tyler
+> separately approves an earlier test. Use simulated messaging in Milestone 4.
+> Use Computer Use only for active inspection/actions; end/reset it before
+> coding, testing or waiting unless a current UI action needs it.
 >
 > Keep personal boundaries unapproved and existing profiles/features/settings/models
 > unchanged. Reuse the isolated .venv, preserve the OneDrive backup/global Python

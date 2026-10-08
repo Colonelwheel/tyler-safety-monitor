@@ -214,6 +214,13 @@ These must not be guessed when their implementation stage arrives:
 
 ## Next task for the camera-program phase
 
+October 7 follow-up: Tyler requested all real SMS, including test texts, be
+deferred until Milestone 6 supervised validation unless separately approved
+earlier. Milestone 4 develops against simulated messaging. Approved real delivery
+and reply tests precede explicit live arming after all acceptance gates. Use
+Computer Use only during active UI inspection/actions; end/reset that automation
+session before coding or waiting unless a current UI action needs it.
+
 Read `FALL_DETECTOR_BLUEPRINT.md` and `NEXT_CHAT_HANDOFF.md`, then inspect and propose **Milestone 3 — Accessible warning and controls**. Obtain approval before its source-code implementation, actual audio behavior or personalized collection. Do not silently change approved safety, accessibility, privacy, or alert-escalation behavior.
 
 Milestones 0 and 1 tooling are complete within the limited observation/calibration/replay scope. Milestone 1 source and documentation were approved October 5, 2026; real personalized data was not collected during that implementation. Two later separately approved safe feature sessions remain private. Tyler deferred caregiver-entry samples; true simultaneous two-person tracking remains unvalidated. Milestone 2's simulated scope was approved October 7; Milestone 3 requires new approval. The supplied lighting photographs were ordinary photographs, not instructed movement tests.

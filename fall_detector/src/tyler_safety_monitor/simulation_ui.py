@@ -45,11 +45,9 @@ class SimulationPanel(QWidget):
         layout.addWidget(self.status)
         self.reason = QLabel()
         self.reason.setWordWrap(True)
-        layout.addWidget(self.reason)
         self.effects = QLabel()
         self.effects.setWordWrap(True)
         self.effects.setAccessibleName("Simulated effects only")
-        layout.addWidget(self.effects)
         self.cancel_button = _button("Cancel Simulated\nAlert", lambda: self.command("cancel"))
         self.cancel_button.setStyleSheet("background:#2e624b;font-weight:700")
         layout.addWidget(self.cancel_button)
@@ -58,6 +56,10 @@ class SimulationPanel(QWidget):
 
         panel = QWidget()
         controls = QVBoxLayout(panel)
+        # Extra explanations can grow without forcing the dashboard taller than
+        # the screen. Current state/countdown and Cancel/Play stay outside scroll.
+        controls.addWidget(self.reason)
+        controls.addWidget(self.effects)
         note = QLabel("This separate simulation does not use the live camera. Synthetic evidence tests the rules; saved features remain uncalibrated. No movement is needed.")
         note.setWordWrap(True)
         controls.addWidget(note)

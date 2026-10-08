@@ -199,39 +199,47 @@ class Dashboard(QMainWindow):
         capture_row.addWidget(self.capture_stop)
         main.addLayout(capture_row)
         main.addWidget(self.preview, 1)
+        self.camera_summary = QLabel("Camera stopped")
+        self.camera_summary.setWordWrap(True)
+        main.addWidget(self.camera_summary)
         # Keep the essential volume controls visible without scrolling the
         # setup panel, even on Windows displays with large text scaling.
-        volume_row = QHBoxLayout()
+        self.volume_row = QGridLayout()
         self.volume_label = QLabel()
         main.addWidget(self.volume_label)
-        volume_row.addWidget(button("Decrease", lambda: self.change_volume(-0.1)))
-        volume_row.addWidget(button("Increase", lambda: self.change_volume(0.1)))
-        volume_row.addWidget(button("Test Sound", self.test_sound))
-        volume_row.addWidget(button("Stop Test Sound", self.sound.stop))
-        main.addLayout(volume_row)
+        self.volume_controls = (
+            button("Decrease", lambda: self.change_volume(-0.1)),
+            button("Increase", lambda: self.change_volume(0.1)),
+            button("Test Sound", self.test_sound),
+            button("Stop Test Sound", self.sound.stop),
+        )
+        self._volume_columns = 2
+        for index, control in enumerate(self.volume_controls):
+            self.volume_row.addWidget(control, index // 2, index % 2)
+        main.addLayout(self.volume_row)
         self.health = QLabel("Camera stopped")
         self.health.setWordWrap(True)
-        self.health.setMinimumHeight(100)
-        main.addWidget(self.health)
         self.pose_status = QLabel("Pose model not started")
         self.pose_status.setWordWrap(True)
         main.addWidget(self.pose_status)
         self.caregiver_status = QLabel()
         self.caregiver_status.setWordWrap(True)
         self.caregiver_status.setAccessibleName("Live second-person diagnostic")
-        main.addWidget(self.caregiver_status)
         self.render_caregiver_status()
         candidates_note = QLabel("Tracks are person candidates. No fall classification or caregiver confirmation.")
         candidates_note.setWordWrap(True)
-        main.addWidget(candidates_note)
         legend = QLabel("Landmark scores: green ≥80%, amber 50–80%, hidden below 50%. Visibility/presence scores are not safety accuracy.")
         legend.setWordWrap(True)
-        main.addWidget(legend)
         layout.addLayout(main, 3)
 
         panel = QWidget()
         controls = QVBoxLayout(panel)
         controls.addWidget(QLabel("Camera"))
+        # Detailed diagnostics must not compete with the live picture for
+        # height. They remain available in the one-pointer setup scroll panel.
+        controls.addWidget(self.health)
+        controls.addWidget(candidates_note)
+        controls.addWidget(legend)
         self.camera_index = QSpinBox()
         self.camera_index.setRange(0, 20)
         self.camera_index.setValue(self.settings.camera_index)
@@ -307,8 +315,14 @@ class Dashboard(QMainWindow):
         from .simulation_ui import SimulationPanel
         self.simulation = SimulationPanel()
         self.tabs.addTab(self.simulation, "Simulation")
-        layout.addWidget(self.tabs, 1)
+        # Keep the live continuity counter visible on every tab without
+        # shrinking or covering the camera picture with its wrapped text.
+        side = QVBoxLayout()
+        side.addWidget(self.caregiver_status)
+        side.addWidget(self.tabs, 1)
+        layout.addLayout(side, 1)
         self.setCentralWidget(central)
+        self.preview.installEventFilter(self)
         self.setStyleSheet("""
             QWidget {background:#182235;color:#e4ecf7;font-size:16px;}
             QPushButton {background:#2b405c;border:1px solid #607d9e;border-radius:8px;padding:8px;}
@@ -365,6 +379,23 @@ class Dashboard(QMainWindow):
     def tray_activated(self, reason) -> None:
         if reason == QSystemTrayIcon.ActivationReason.Trigger:
             self.open_dashboard()
+
+    def eventFilter(self, watched, event) -> bool:
+        if watched is self.preview and event.type() == QEvent.Type.Resize:
+            # Start compact so minimum-size negotiation never pushes a scaled
+            # window offscreen. Use one row only when all captions actually fit.
+            required = sum(control.minimumSizeHint().width() for control in self.volume_controls)
+            required += 3 * self.volume_row.horizontalSpacing()
+            columns = 4 if self.preview.width() >= required else 2
+            if columns != self._volume_columns:
+                self._volume_columns = columns
+                for control in self.volume_controls:
+                    self.volume_row.removeWidget(control)
+                for column in range(4):
+                    self.volume_row.setColumnStretch(column, 1 if column < columns else 0)
+                for index, control in enumerate(self.volume_controls):
+                    self.volume_row.addWidget(control, index // columns, index % columns)
+        return super().eventFilter(watched, event)
 
     def open_dashboard(self) -> None:
         self.showNormal()
@@ -423,6 +454,7 @@ class Dashboard(QMainWindow):
         self._start_camera()
 
     def _start_camera(self) -> None:
+        self.camera_summary.setText("Camera starting")
         self.caregiver_counter.reset("Camera session restarted.")
         self.render_caregiver_status()
         if self.tools.player is not None:
@@ -455,6 +487,7 @@ class Dashboard(QMainWindow):
             self.pose_status.setText("Pose model missing. Download it explicitly using the documented model command.")
 
     def pause_camera(self) -> None:
+        self.camera_summary.setText("Camera paused")
         self.caregiver_counter.reset("Camera paused; current people unavailable.")
         self.render_caregiver_status()
         self.stop_head_comparison()
@@ -740,6 +773,7 @@ class Dashboard(QMainWindow):
         if self.capture is None:
             return
         metrics = self.capture.snapshot()
+        self.camera_summary.setText(f"Camera: {metrics.state} • observation only")
         self.tools.show_zones()
         age = "no frames" if metrics.frame_age is None else f"{metrics.frame_age:.2f}s old"
         self.health.setText(
