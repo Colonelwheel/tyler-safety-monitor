@@ -1,4 +1,23 @@
-# Next-chat handoff — Milestone 4: simulated messaging
+# Next-chat handoff — low-light tracking follow-up, then Milestone 4: simulated messaging
+
+## Pending: low-light head-position jump — next matching nighttime session
+
+Requested October 8, 2026. Tyler reported low-light flickering followed by a blue
+head/trail line far from his actual head, as though a brief tracking dip teleported
+it. Investigate when he returns to this same lighting level (requested tomorrow
+night), before moving on to Milestone 4. The screenshot supports an apparent
+tracking/display error; its detection, identity, stale-position or trail cause is
+not yet verified. Do not copy the private screenshot into the repository.
+
+Inspect raw versus accepted head positions and loss/reacquisition/trail behavior.
+Propose a small repair: explicitly uncertain position during loss, trail breaks
+across unreliable observations, and credible reacquisition without rejecting real
+fast movement/collapse. Preserve fixed incident timers; missing tracking is never
+recovery, caregiver confirmation or departure. Verify synthetic dropout/outlier,
+reacquisition and genuine-movement cases, then check the matching lighting with
+Tyler. No movement challenge, recording or new personal collection is approved.
+This entry authorizes notes only; ask before implementing the tracking repair.
+
 
 Updated October 8, 2026. Milestone 3 was explicitly approved and implemented with
 configurable VoiceAttack input hotkeys, test warnings and opted-in local speech/
@@ -129,7 +148,9 @@ Sounds. Hotkeys tab selects/applies/saves the user's own mappings for VoiceAttac
 > Continue Tyler Safety Monitor in C:\Codex Projects\Tyler Safety Monitor. Read
 > fall_detector/docs/TRACKING_REPAIR_CHECKPOINT.md first, then every project-authored
 > Markdown including AGENTS, blueprint, next handoff and MILESTONE_3.md. Inspect
-> Git/source/tests and propose Milestone 4 simulated messaging. Ask before source
+> Git/source/tests. First inspect the pending low-light head-position/trail jump with
+> Tyler at matching lighting and propose a repair; ask before implementing it.
+> Then propose Milestone 4 simulated messaging. Ask before source
 > changes or new credential/runtime scope; this handoff does not approve them.
 > Preserve manual-only choking resolution (arrival/reply stops repeats but keeps
 > the popup active), persistent choking warning silence after departure, and

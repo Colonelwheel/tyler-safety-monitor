@@ -1,5 +1,24 @@
 # Tracking repair checkpoint
 
+## Pending: low-light head-position jump — next matching nighttime session
+
+Requested October 8, 2026. Tyler reported low-light flickering followed by a blue
+head/trail line far from his actual head, as though a brief tracking dip teleported
+it. Investigate when he returns to this same lighting level (requested tomorrow
+night), before moving on to Milestone 4. The screenshot supports an apparent
+tracking/display error; its detection, identity, stale-position or trail cause is
+not yet verified. Do not copy the private screenshot into the repository.
+
+Inspect raw versus accepted head positions and loss/reacquisition/trail behavior.
+Propose a small repair: explicitly uncertain position during loss, trail breaks
+across unreliable observations, and credible reacquisition without rejecting real
+fast movement/collapse. Preserve fixed incident timers; missing tracking is never
+recovery, caregiver confirmation or departure. Verify synthetic dropout/outlier,
+reacquisition and genuine-movement cases, then check the matching lighting with
+Tyler. No movement challenge, recording or new personal collection is approved.
+This entry authorizes notes only; ask before implementing the tracking repair.
+
+
 ## October 8, 2026: Milestone 3 completed in test mode
 
 The separate manual Test Alerts session, actual accessible warning UI, opted-in
