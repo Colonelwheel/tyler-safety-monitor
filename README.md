@@ -23,6 +23,13 @@ hotkeys for VoiceAttack input. It never listens to the microphone or sends SMS.
 The dashboard opens in the foreground during development. See
 [`fall_detector/docs/MILESTONE_3.md`](fall_detector/docs/MILESTONE_3.md).
 
+Milestone 4 adds bounded in-memory simulated delivery/status and validated fake
+caregiver replies, with no network or credentials. Every scheduled attempt counts
+toward ten; valid replies stop repeats while manual choking remains active until
+Cancel/Resolve. All 636 synthetic tests pass. Milestone 5 is next for proposal and
+separate approval. Real SMS and caregiver sessions normally wait for Milestone 6.
+See [`fall_detector/docs/MILESTONE_4.md`](fall_detector/docs/MILESTONE_4.md).
+
 ## Pages
 
 - `index.html` — homepage

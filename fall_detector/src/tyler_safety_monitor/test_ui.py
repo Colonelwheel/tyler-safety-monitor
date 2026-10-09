@@ -13,6 +13,8 @@ from .alert_audio import AlertAudio
 from .simulation_state import Engine, Evidence, Incident
 from .scrolling import PanelWheelGuard
 from .warning_ui import WarningWindow
+from .simulation_messaging import MessagingSession
+from .messaging_ui import MessagingControls
 
 
 def _button(label, callback):
@@ -36,6 +38,7 @@ class TestPanel(QWidget):
         self.clock, self.volume = clock, volume
         self.audio_factory, self.enable_guard = audio_factory, enable_guard
         self.engine = Engine()
+        self.messaging = MessagingSession()
         self.enabled = False
         self.playing = False
         self.audio_enabled = False
@@ -102,7 +105,11 @@ class TestPanel(QWidget):
         ))
         self.evidence_selector.currentIndexChanged.connect(self._select_evidence)
         controls.addWidget(self.evidence_selector)
-        controls.addWidget(_button("Simulated Caregiver Reply", lambda: self.command("reply")))
+        self.messaging_controls = MessagingControls(
+            lambda: self.messaging, lambda: self.snapshot, lambda: self.position,
+            self.receive_simulated_reply, self,
+        )
+        controls.addWidget(self.messaging_controls)
         controls.addStretch()
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
@@ -143,7 +150,10 @@ class TestPanel(QWidget):
         if not self.enable_guard():
             self.status.setText("Test session blocked: finish/review active capture first.")
             return False
+        self.messaging.close()
         self.engine = Engine()
+        self.messaging = MessagingSession()
+        self.messaging_controls.reset()
         self._contacted_911 = False
         self._position = 0.
         self._anchor = self.clock()
@@ -159,6 +169,7 @@ class TestPanel(QWidget):
         return True
 
     def end_session(self):
+        self.messaging.close()
         self.enabled = self.playing = False
         self.stop_audio()
         self.warning.hide()
@@ -177,12 +188,26 @@ class TestPanel(QWidget):
             return False
         if action == "contact_911":
             return self.contact_911()
+        if action == "reply":
+            return self.receive_simulated_reply(self.messaging.make_reply(self.position))
         previous_warning_key = self._warning_key
         self.engine.command(action, self.position)
         self._mode_announcement = action if action in {"start", "night"} else None
         self.render()
         if action in {"fall", "choking"} and previous_warning_key == self._warning_key and self._warning_key is not None:
             self.warning.bring_forward()
+        return True
+
+    def receive_simulated_reply(self, reply):
+        if not self.enabled:
+            return False
+        now = self.position
+        # Validate before the equal-time repeat deadline; Engine still owns time.
+        self.messaging.sync(self.snapshot, now=now)
+        if not self.messaging.receive_reply(reply, self.snapshot, now):
+            return False
+        self.engine.command("reply", now)
+        self.render()
         return True
 
     def toggle_pause(self):
@@ -283,6 +308,18 @@ class TestPanel(QWidget):
 
     def render(self):
         snapshot = self.engine.snapshot
+        if self.enabled:
+            self.messaging.sync(snapshot, now=self.position)
+            self.messaging.advance(self.position)
+        self.messaging_controls.render(self.enabled)
+        self.warning.set_messaging_status(
+            self.messaging_controls.status.text() + "\n" + self.messaging_controls.preview.text())
+        delivery = self.messaging.summary(snapshot.episode_id)
+        messaging_unavailable = self.messaging.messaging_unavailable(snapshot.episode_id)
+        messaging_note = (" Simulated caregiver messaging unavailable."
+                          if delivery.error or delivery.last_status in {
+                              "rejected", "failed", "undelivered", "unknown",
+                          } else " Some simulated message attempts failed or remain unknown.")
         self._set_silence(self.enabled and snapshot.caregiver)
         self.enable_button.setText("End Test Session" if self.enabled else "Enable Test Session")
         self.pause_button.setText("Pause Test Clock" if self.playing else "Resume Test Clock")
@@ -329,7 +366,10 @@ class TestPanel(QWidget):
             choking = snapshot.choking
             text = ("Emergency demonstration. No message sent. Use the large green button."
                     if choking else "Possible fall demonstration. No message sent. Use the large green button.")
-            key = (snapshot.incident.value, snapshot.audio_priority)
+            if messaging_unavailable:
+                text += messaging_note
+            key = (snapshot.incident.value, snapshot.audio_priority,
+                   messaging_note if messaging_unavailable else "")
             self.audio.update(key, text, True, self.volume())
         elif self._mode_announcement is not None:
             action = self._mode_announcement

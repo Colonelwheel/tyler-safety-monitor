@@ -12,6 +12,7 @@ from PySide6.QtWidgets import (
 from .replay import load_feature_sequence
 from .simulation_replay import SimulationRunner, builtin_scenarios, feature_scenario
 from .scrolling import PanelWheelGuard
+from .messaging_ui import MessagingControls
 
 
 def _button(label, callback):
@@ -77,6 +78,7 @@ class SimulationPanel(QWidget):
         self.selector.currentIndexChanged.connect(self.select_scenario)
         controls.addWidget(_button("Restart Scenario\nPaused", self.restart))
         controls.addWidget(_button("Advance 10 Seconds\nSimulation", self.step))
+        controls.addWidget(_button("Advance 60 Seconds\nSimulation", self.advance_minute))
         controls.addWidget(_button("Open Approved\nFeature Replay", self.open_feature_replay))
         self.import_status = QLabel("Opening an existing feature file is read only; it cannot approve personal safety boundaries.")
         self.import_status.setWordWrap(True)
@@ -86,13 +88,17 @@ class SimulationPanel(QWidget):
             ("Night Mode\nSimulation", "night"),
             ("Possible Fall\nSimulation", "fall"),
             ("Choking\nSIMULATION ONLY", "choking"),
-            ("Caregiver Reply\nSimulation", "reply"),
             ("Resolve Simulated\nIncident", "resolve"),
         ):
             control = _button(label, lambda checked=False, action=action: self.command(action))
             if action == "choking":
                 control.setStyleSheet("background:#713540;font-weight:700")
             controls.addWidget(control)
+        self.messaging_controls = MessagingControls(
+            lambda: self.runner.messaging, lambda: self.runner.snapshot,
+            lambda: self.runner.position(self.clock()), self.receive_simulated_reply, self,
+        )
+        controls.addWidget(self.messaging_controls)
         controls.addStretch()
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
@@ -108,16 +114,22 @@ class SimulationPanel(QWidget):
     def select_scenario(self, index):
         if index < 0:
             return
+        self.runner.messaging.close()
         self.runner = SimulationRunner(self.scenarios[index])
+        self.messaging_controls.reset()
         self.description.setText(self.scenarios[index].description)
         self.render(self.runner.engine.snapshot)
 
     def restart(self):
         self.runner.rewind(self.clock())
+        self.messaging_controls.reset()
         self.render(self.runner.engine.snapshot)
 
     def step(self):
         self.render(self.runner.step(10., self.clock()))
+
+    def advance_minute(self):
+        self.render(self.runner.step(60., self.clock()))
 
     def toggle_play(self):
         now = self.clock()
@@ -130,6 +142,11 @@ class SimulationPanel(QWidget):
     def command(self, action):
         self.render(self.runner.command(action, self.clock()))
 
+    def receive_simulated_reply(self, reply):
+        valid = self.runner.receive_reply(reply, self.clock())
+        self.render(self.runner.snapshot)
+        return valid
+
     def refresh(self):
         if self.runner.playing:
             self.render(self.runner.advance(self.clock()))
@@ -137,6 +154,7 @@ class SimulationPanel(QWidget):
             self.render(self.runner.engine.snapshot)
 
     def render(self, snapshot):
+        self.messaging_controls.render()
         remaining = getattr(snapshot, "remaining", None)
         countdown = "none" if remaining is None else f"{max(0.0, remaining):.1f} seconds"
         uncertain = "UNCERTAIN" if snapshot.uncertain else "synthetic evidence available"
@@ -187,3 +205,4 @@ class SimulationPanel(QWidget):
         self.timer.stop()
         if self.runner.playing:
             self.runner.pause(self.clock())
+        self.runner.messaging.close()

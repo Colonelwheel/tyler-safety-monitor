@@ -57,9 +57,13 @@ class WarningWindow(QWidget):
         self.uncertainty.setStyleSheet("font-size:22px")
         self.note = QLabel("Selected app volume only. Windows mute/maximum-volume changes and all messaging are simulated.")
         self.note.setWordWrap(True)
+        self.messaging_status = QLabel()
+        self.messaging_status.setWordWrap(True)
+        self.messaging_status.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.messaging_status.setAccessibleName("Simulated warning message status and preview")
         self.foreground_status = QLabel()
         self.foreground_status.setWordWrap(True)
-        for widget in (self.reason, self.uncertainty, self.note, self.foreground_status):
+        for widget in (self.reason, self.uncertainty, self.note, self.messaging_status, self.foreground_status):
             details_layout.addWidget(widget)
         details_layout.addStretch()
         self.scroll = QScrollArea()
@@ -113,6 +117,10 @@ class WarningWindow(QWidget):
         elif snapshot.choking_silent:
             uncertainty += " Choking audio remains silent until manual cancellation."
         self.uncertainty.setText(uncertainty)
+
+    def set_messaging_status(self, text):
+        # Delivery information stays reachable inside the warning's detail scroll.
+        self.messaging_status.setText(text)
 
     def present(self):
         self.showFullScreen()

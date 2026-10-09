@@ -291,6 +291,7 @@ def test_choking_reply_stops_repeats_but_retains_popup_until_manual_cancel(panel
     widget, clock = panel
     widget.enable_session()
     widget.command("choking")
+    step(widget, clock, .1)  # Inbound reply must be created after episode start.
     widget.command("reply")
     assert widget.snapshot.incident == Incident.ALERT_ACTIVE
     assert widget.snapshot.choking and widget.warning.isVisible()

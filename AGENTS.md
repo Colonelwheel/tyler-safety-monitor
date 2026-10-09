@@ -69,6 +69,13 @@ requires a separately reviewed implementation and explicit approval.
   Test session and audible output still require separate enable actions per launch.
   Windows volume/mute switching, real SMS, recording, startup/watchdog and new
   personal collection remain outside this approval.
+- Tyler approved Milestone 4 simulated messaging source/tests/documentation on
+  October 8, 2026. Use synthetic labels, in-memory bounded delivery/reply histories
+  and Engine-owned deadlines/repeats. Every scheduled attempt counts toward ten,
+  including failed/unknown; fall-to-choking immediately starts a new budget.
+  No real SMS, credentials, durable messaging files, dependency additions or new
+  normal AppData messaging scope. Milestone 5 and tracking-repair source still
+  require approval. Keep real texts and caregiver sessions normally at Milestone 6.
 - Tyler requested foreground dashboard startup during development on October 8.
   Keep the default visible until he approves restoring tray-first behavior near
   the end of the project. `--start-minimized` is an explicit optional override.

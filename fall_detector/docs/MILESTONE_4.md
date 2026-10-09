@@ -1,6 +1,57 @@
-# Milestone 4 proposal - simulated messaging
+# Milestone 4 - simulated messaging
 
-Status: proposal only, October 8, 2026. Source implementation is not approved.
+## October 8: Milestone 4 simulated implementation complete
+
+Tyler approved Milestone 4 source implementation in this conversation and clarified
+that every scheduled attempt, including failed/unknown outcomes, counts toward ten.
+Fall-to-choking preserves the immediate intent and begins a new ten-attempt budget;
+repeated Choking during that episode does not create another budget.
+
+The pure in-memory messaging session uses synthetic sender/recipient labels,
+stable session/episode/effect identities, bounded histories and exactly-once effect
+consumption. Engine alone owns fixed deadlines, 60-second repeats and stopping
+rules. Fake submission/accepted/sent/delivered/rejected/failed/undelivered/delayed/
+unknown outcomes are separate from intent counts. Errors remain visible in the
+warning details; opted-in local output uses the existing audio owner and silence
+priorities. There is no network adapter, credential input or normal messaging file.
+
+Replies require a fresh unseen ID, matching synthetic sender/recipient/session and
+a creation time after the current episode began and no later than its clock.
+Valid replies stop repeats without resolving choking or implying caregiver presence.
+Arrival stops repeats and sets persistent warning silence. Reliable departure
+restores saved simulated audio independently of armed state, while unresolved
+choking output remains silent until manual Cancel/Resolve. Delivery never resolves
+an incident. Contact 911 remains visual-only with its configurable existing hotkey.
+
+Final verification: 636 synthetic tests passed using the existing isolated .venv,
+fresh redirected scratch/AppData/temp/caches, fake devices/output and offscreen Qt.
+Dependency check passed. Cases include ten failed/unknown attempts without immediate retries,
+new choking budgets, invalid/duplicate/old replies, equal-deadline acknowledgement,
+pause-frozen delayed delivery and stale-session callback rejection. A selectable
+600-second quiet scenario exercises the cap using one-action minute advances.
+Independent source review and synthetic layout inspection checked warning details
+at 800 x 600 and a 440 x 630 dashboard, keeping essential controls reachable.
+These checks do not establish real camera/audio/VoiceAttack/fullscreen acceptance.
+
+In-memory continuation tests establish only simulation deduplication; there is no
+cross-process durable outbox, real provider integration or live alert arming.
+Real texts (including test texts) and caregiver participation normally remain
+Milestone 6 work, after separately approved credential/runtime and delivery scopes.
+No recording, Windows audio switching, startup/watchdog, personal collection,
+model/profile/settings migration or microphone listener was added. Saved hotkeys
+restore; test session and audio remain separate per-launch opt-ins. Development
+startup remains foreground until Tyler approves restoring tray-first behavior.
+The OneDrive backup, ordinary Desktop/Codex AppData namespaces, global Python and
+public website are preserved. No Computer Use session was opened or running
+monitor restarted during this implementation.
+
+The matching-light head-position/trail investigation remains queued with Tyler.
+No tracking-repair implementation is approved. Milestone 5 is next for inspection
+and proposal; its source changes and new runtime/startup/watchdog scope need approval.
+
+## Historical proposal and baseline review
+
+Historical status before approval on October 8, 2026; superseded by the completion record above.
 Synthetic messaging work can proceed independently of the queued matching-light
 head-position/trail investigation. Tracking-repair source needs separate approval.
 
@@ -31,7 +82,7 @@ roundtrip can verify deduplication with in-memory copies; this does not establis
 real process-restart durability. Production outbox persistence and credential
 storage require a separate destination, side-effect and approval proposal.
 
-## Confirmed choice and pending decision
+## Confirmed policy choices
 
 Tyler confirmed in this chat that upgrading an active fall alert to choking keeps
 the current behavior: send an immediate choking intent and begin a new ten-message
@@ -40,17 +91,15 @@ and prior-session callbacks cannot acknowledge it. Any unseen matching caregiver
 reply created afterward acknowledges regardless of body or which message prompted
 the reply. Delivery results never acknowledge or resolve an incident.
 
-Pending Tyler's answer: does the ten-slot cap count every scheduled submission
-attempt, including rejected/unknown outcomes, or only accepted messages with a
-separately bounded retry policy? Recommended proposal: count each scheduled
-attempt, keep accepted/delivered totals separate, and consume uncertain outcomes
-conservatively without immediate duplicate sends. Do not implement this choice
-until resolved. A new choking budget does not authorize restarting repeats by
-repeatedly pressing Choking during the same unresolved choking incident.
+Tyler subsequently confirmed: count every scheduled submission attempt toward
+ten, including failed/unknown outcomes. Accepted/delivered totals stay separate;
+there are no immediate retries. Repeated Choking in the same unresolved episode
+does not restart its budget.
 
 ## Feature conflicts and preserved behavior
 
-The current Engine effects contain timestamp/kind only and use a bounded history.
+At the pre-implementation baseline, Engine effects contained timestamp/kind only
+and used a bounded history.
 That cannot safely serve as an exactly-once dispatch cursor across resets or
 history eviction. Stable identities and consumption at each engine transition
 must prevent loss/duplicates without replaying old history.

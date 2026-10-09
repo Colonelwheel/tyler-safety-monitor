@@ -105,6 +105,10 @@ class Evidence:
 class Effect:
     timestamp: float
     kind: str
+    sequence: int = 0
+    episode_id: int = 0
+    message_number: int = 0
+    episode_started: float | None = None
 
 
 @dataclass(frozen=True)
@@ -123,6 +127,9 @@ class Snapshot:
     caregiver_current: bool = False
     choking: bool = False
     choking_silent: bool = False
+    episode_id: int = 0
+    episode_started: float | None = None
+    effect_sequence: int = 0
 
 
 class Engine:
@@ -150,6 +157,9 @@ retroactively cancel its already emitted simulated intent.
         self._rearm_required = False
         self._safe_since = self._safe_last = None
         self._message_count = 0
+        self._episode_id = 0
+        self._episode_started = None
+        self._effect_sequence = 0
         self._next_repeat = None
         self._choking = False
         self._choking_silent = False
@@ -175,7 +185,8 @@ retroactively cancel its already emitted simulated intent.
                         self._uncertain or self._caregiver and not caregiver_current,
                         self._reason, priority, self.effects,
                         self._message_count, self._fault, self._caregiver, self._night,
-                        caregiver_current, self._choking, self._choking_silent)
+                        caregiver_current, self._choking, self._choking_silent,
+                        self._episode_id, self._episode_started, self._effect_sequence)
 
     def _clock(self, timestamp):
         timestamp = _seconds(timestamp)
@@ -186,8 +197,12 @@ retroactively cancel its already emitted simulated intent.
             self._mode = Mode.READY
         return timestamp
 
-    def _effect(self, kind, timestamp=None):
-        self._effects.append(Effect(self._now if timestamp is None else timestamp, kind))
+    def _effect(self, kind, timestamp=None, message_number=0):
+        self._effect_sequence += 1
+        self._effects.append(Effect(
+            self._now if timestamp is None else timestamp, kind,
+            self._effect_sequence, self._episode_id, message_number,
+            self._episode_started))
 
     def _resolve(self, reason):
         if self._incident not in {Incident.NONE, Incident.RESOLVED}:
@@ -218,6 +233,8 @@ retroactively cancel its already emitted simulated intent.
                 self._deadline = min(previous_alert_deadline, new_deadline)
                 self._reason = "Simulated severe evidence; existing deadline cannot be postponed."
             return
+        self._episode_id += 1
+        self._episode_started = self._now
         self._message_count = 0
         self._next_repeat = None
         self._choking = self._choking_silent = False
@@ -231,7 +248,7 @@ retroactively cancel its already emitted simulated intent.
             return
         self._message_count += 1
         kind = "would_repeat_" if repeat else "would_send_"
-        self._effect(kind + ("choking" if self._choking else "fall"), timestamp)
+        self._effect(kind + ("choking" if self._choking else "fall"), timestamp, self._message_count)
         self._next_repeat = timestamp + self.config.repeat
         if self._message_count >= self.config.max_messages:
             self._next_repeat = None
@@ -395,6 +412,8 @@ retroactively cancel its already emitted simulated intent.
         elif action == "choking":
             if not self._choking and self._last_choking_command != self._now:
                 self._last_choking_command = self._now
+                self._episode_id += 1
+                self._episode_started = self._now
                 self._message_count = 0
                 self._choking = True
                 self._choking_silent = self._caregiver

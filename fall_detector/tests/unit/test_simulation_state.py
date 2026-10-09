@@ -3,7 +3,7 @@ from dataclasses import replace
 
 import pytest
 
-from tyler_safety_monitor.simulation_state import Config, Engine, Evidence, Incident, Mode
+from tyler_safety_monitor.simulation_state import Config, Effect, Engine, Evidence, Incident, Mode, Snapshot
 
 
 def safe(timestamp, **changes):
@@ -579,3 +579,124 @@ def test_reply_alone_stops_choking_repeats_without_caregiver_silence_latch():
     assert engine.snapshot.audio_priority == "choking_maximum_simulated"
     engine.tick(1000)
     assert engine.snapshot.choking and engine.snapshot.message_count == 1
+
+
+def test_legacy_effect_and_snapshot_constructions_keep_identity_defaults():
+    effect = Effect(2, "normal_warning")
+    assert (effect.sequence, effect.episode_id, effect.message_number,
+            effect.episode_started) == (0, 0, 0, None)
+    state = Snapshot(Mode.READY, Incident.NONE, None, True, "No observation.",
+                     "idle", (), 0)
+    assert (state.episode_id, state.episode_started, state.effect_sequence) == (0, None, 0)
+
+
+def test_cancel_then_new_fall_at_same_timestamp_has_distinct_episode_identity():
+    engine = Engine()
+    first = engine.command("fall", 4)
+    cancelled = engine.command("cancel", 4)
+    second = engine.command("fall", 4)
+    assert (first.episode_id, cancelled.episode_id, second.episode_id) == (1, 1, 2)
+    assert first.episode_started == second.episode_started == 4
+    engine.tick(12)
+    assert engine.effects[-1].episode_id == 2
+    assert engine.effects[-1].message_number == 1
+    assert engine.effects[-1].sequence > cancelled.effect_sequence
+
+
+@pytest.mark.parametrize("severe_time, expected_deadline", [(27, 35), (35, 41)])
+def test_severe_upgrade_retains_episode_start_and_fixed_fall_deadline(severe_time, expected_deadline):
+    engine = armed()
+    initial = engine.observe(posture(1, "lean"))
+    upgraded = engine.observe(posture(severe_time, "severe"))
+    assert upgraded.episode_id == initial.episode_id == 1
+    assert upgraded.episode_started == initial.episode_started == 1
+    assert upgraded.remaining == expected_deadline - severe_time
+    engine.tick(expected_deadline)
+    message = engine.effects[-1]
+    assert message.kind == "would_send_fall"
+    assert (message.episode_id, message.episode_started, message.message_number) == (1, 1, 1)
+
+
+def test_fall_to_choking_creates_new_episode_and_budget_without_repeated_reset():
+    engine = Engine()
+    engine.command("fall", 1)
+    engine.tick(9)
+    engine.tick(69)
+    fall = engine.snapshot
+    assert fall.message_count == 2
+    choking = engine.command("choking", 70)
+    assert choking.episode_id == fall.episode_id + 1
+    assert choking.episode_started == 70
+    assert choking.message_count == 1
+    first_choking_message = engine.effects[-1]
+    assert (first_choking_message.kind, first_choking_message.message_number) == (
+        "would_send_choking", 1)
+    engine.command("choking", 70)
+    engine.command("choking", 71)
+    assert engine.snapshot.episode_id == choking.episode_id
+    assert engine.snapshot.episode_started == 70
+    assert engine.snapshot.message_count == 1
+    engine.tick(130)
+    assert engine.effects[-1].message_number == 2
+    assert engine.effects[-1].episode_id == choking.episode_id
+
+
+def test_choking_same_timestamp_guard_survives_cancel_and_later_new_episode():
+    engine = Engine()
+    original = engine.command("choking", 1)
+    engine.command("cancel", 1)
+    blocked = engine.command("choking", 1)
+    assert blocked.incident == Incident.RESOLVED
+    assert blocked.episode_id == original.episode_id
+    new = engine.command("choking", 1.1)
+    assert new.choking and new.incident == Incident.ALERT_ACTIVE
+    assert (new.episode_id, new.episode_started, new.message_count) == (2, 1.1, 1)
+
+
+def test_effect_sequence_stays_monotonic_after_history_eviction_and_resolution():
+    engine = Engine(Config(max_effects=2))
+    first = engine.command("choking", 1)
+    for timestamp in (2, 3, 4, 5):
+        engine.command("cancel", timestamp)
+        engine.command("choking", timestamp)
+    assert first.effects[0].sequence == 1
+    assert len(engine.effects) == 2
+    assert [effect.sequence for effect in engine.effects] == [
+        engine.snapshot.effect_sequence - 1, engine.snapshot.effect_sequence]
+    assert engine.snapshot.effect_sequence > len(engine.effects)
+    assert engine.effects[-1].episode_id == 5
+    assert engine.effects[-1].episode_started == 5
+    assert engine.effects[-1].message_number == 1
+
+
+def test_only_message_effects_get_slot_numbers_and_cap_remains_transport_independent():
+    engine = armed()
+    engine.observe(posture(1, "lean"))
+    engine.tick(31)
+    assert engine.effects[-1].message_number == 0
+    engine.tick(41)
+    for index in range(1, 10):
+        engine.tick(41 + index * 60)
+    at_cap = engine.snapshot
+    engine.tick(10000)
+    assert engine.snapshot.effect_sequence == at_cap.effect_sequence
+    message_effects = [effect for effect in engine.effects if effect.message_number]
+    assert [effect.message_number for effect in message_effects] == list(range(1, 11))
+    assert all((effect.episode_id, effect.episode_started) == (1, 1)
+               for effect in message_effects)
+    engine.command("cancel", 10000)
+    assert engine.effects[-1].kind == "incident_resolved"
+    assert engine.effects[-1].message_number == 0
+    assert engine.snapshot.episode_id == 1
+
+
+def test_late_warning_tick_preserves_episode_start_separately_from_effect_timestamp():
+    engine = Engine()
+    began = engine.command("fall", 5)
+    late = engine.tick(900)
+    message = late.effects[-1]
+    assert (began.episode_started, message.episode_started) == (5, 5)
+    assert message.timestamp == 13
+    assert message.episode_id == began.episode_id
+    assert message.message_number == late.message_count == 1
+    assert engine.tick(900).effect_sequence == late.effect_sequence

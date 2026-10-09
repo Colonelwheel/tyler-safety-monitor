@@ -11,6 +11,7 @@ from math import isfinite
 from typing import Callable
 
 from .simulation_state import Engine, Evidence
+from .simulation_messaging import MessagingSession
 from .replay import FeatureSequence
 from .tracking import PersonTracker
 
@@ -76,6 +77,7 @@ class SimulationRunner:
         self.scenario = scenario
         self._factory = engine_factory
         self.engine = engine_factory()
+        self.messaging = MessagingSession()
         self._position = 0.
         self._anchor = None
         self._last_clock = None
@@ -118,6 +120,8 @@ class SimulationRunner:
             raise ValueError("Simulation time must advance within the scenario")
         self._consume_until(seconds)
         self.engine.tick(seconds)
+        self.messaging.sync(self.engine.snapshot, now=seconds)
+        self.messaging.advance(seconds)
         self._processed_position = seconds
         return self.engine.snapshot
 
@@ -129,7 +133,11 @@ class SimulationRunner:
             if isinstance(event, Evidence):
                 self.engine.observe(event)
             else:
-                self.engine.command(event.action, event.timestamp)
+                if event.action != "reply" or self.messaging.receive_reply(
+                        self.messaging.make_reply(event.timestamp), self.engine.snapshot, event.timestamp):
+                    self.engine.command(event.action, event.timestamp)
+            self.messaging.sync(self.engine.snapshot, now=event.timestamp)
+            self.messaging.advance(event.timestamp)
             self._index += 1
 
     def advance(self, now):
@@ -147,7 +155,9 @@ class SimulationRunner:
 
     def rewind(self, now):
         self._clock(now)
+        self.messaging.close()
         self.engine = self._factory()
+        self.messaging = MessagingSession()
         self._index = 0
         self._processed_position = -1.
         self._position = 0.
@@ -166,12 +176,25 @@ class SimulationRunner:
         # A cancellation received exactly at expiry precedes the expiry tick.
         # Earlier deadlines still expire inside Engine.command; no retroactivity.
         self._consume_until(position, include_equal=False)
-        self.engine.command(action, position)
+        if action != "reply" or self.messaging.receive_reply(
+                self.messaging.make_reply(position), self.engine.snapshot, position):
+            self.engine.command(action, position)
+        self.messaging.sync(self.engine.snapshot, now=position)
         snapshot = self.advance_to(position)
         if position >= self.scenario.duration:
             self._position = position
             self._anchor = None
         return snapshot
+
+    def receive_reply(self, reply, now):
+        position = self.position(now)
+        self._consume_until(position, include_equal=False)
+        valid = self.messaging.receive_reply(reply, self.engine.snapshot, position)
+        if valid:
+            self.engine.command("reply", position)
+        self.advance_to(position)
+        return valid
+
 
 
 def _scenario(name, description, seconds, evidence_at, commands=()):
@@ -239,6 +262,9 @@ def builtin_scenarios():
                   12, lambda t: _safe(t, caregiver_id="synthetic-other", caregiver_valid=True)
                   if 1 <= t < 6 else _safe(t, caregiver_departed=True) if t == 6 else _safe(t),
                   ((4, "choking"),)),
+        Scenario("Unacknowledged choking messages",
+                 "Immediate synthetic choking; advance 60 seconds to inspect repeats and the ten-attempt cap. Missing evidence never resolves it. No audio or real messages.",
+                 (SimulationCommand(0., "choking"),), 600.),
     )
 
 

@@ -75,6 +75,38 @@ enabling Test Alerts, or end the test before beginning an independently approved
 capture. This preserves existing samples and keeps essential controls reachable.
 See [Milestone 3](docs/MILESTONE_3.md).
 
+## Milestone 4 simulated messaging
+
+Both **Test Alerts** and quiet **Simulation** now show fake message previews and
+intent/attempt/accepted/delivered/failed/pending/unknown totals in their scrollable
+details. The fullscreen test warning also shows status and simulated unavailability.
+Choose future fake outcomes: delivered, accepted, sent, rejected, failed,
+undelivered, delayed or unknown. Delayed results use the owning clock and freeze
+on pause. Every scheduled attempt counts toward ten, even failed/unknown; no
+immediate retries are made. Engine keeps the fixed warning timers and one-minute
+repeats. Fall-to-choking gets an immediate new budget; duplicate Choking does not.
+
+For a quiet one-action demonstration select **Unacknowledged choking messages**
+and choose an outcome, then tap **Advance 60 Seconds Simulation**. Selection stays
+paused; first advance produces the initial choking intent plus its first repeat.
+Further advances reach ten attempts at 540 seconds; at the 600-second end no
+additional attempt occurs. This synthetic scenario needs no camera or movement.
+The Simulation panel never produces sounds or real messages.
+
+**Simulate Caregiver Reply** offers valid, wrong-sender/recipient, old, future,
+duplicate and prior-session cases. Only fresh unseen replies matching synthetic
+session/addresses acknowledge. Valid replies stop repeats but leave choking active;
+reply alone does not imply presence or silence audio. Manual Cancel/Resolve is
+still required. Delivery outcomes never acknowledge an incident.
+
+Histories are bounded and in memory only; reset/end rejects prior-session work.
+No Twilio adapter, network dispatch, phone/credential entry or messaging files are
+introduced. Simulation continuation checks do not prove actual process-restart
+recovery. Real test texts/caregiver sessions normally wait for Milestone 6 and
+separate approval. See [Milestone 4](docs/MILESTONE_4.md). Test session/audio still
+opt in per launch; saved hotkeys restore independently. Milestone 5 startup and
+watchdog work require a new proposal and approval.
+
 ## Open the installed dashboard
 
 The preferred working copy on this PC is `C:\Codex Projects\Tyler Safety Monitor`,

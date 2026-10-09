@@ -642,7 +642,17 @@ approval; the optional `--start-minimized` switch retains that workflow now.
 - Add manual fall and immediate choking triggers in test mode.
 - Verify one-finger use.
 
-### Milestone 4 — Twilio messaging
+### Milestone 4 — Simulated messaging (completed); real integration deferred
+
+October 8: Tyler approved the simulated implementation. All 636 synthetic tests
+passed; see `fall_detector/docs/MILESTONE_4.md`. Synthetic transport/replies use
+no network, credentials or new normal messaging storage. Every scheduled attempt,
+including failed/unknown, consumes one of ten slots. Fall-to-choking creates an
+immediate new ten-attempt budget; duplicate Choking does not. Delivery success
+never resolves an incident. Cross-process durability is not established.
+
+The following real integration requirements remain deferred and need separately
+approved credential/runtime/source scope before implementation:
 
 - Store secrets securely.
 - Build and verify against simulated messaging first. Tyler requested on
@@ -652,6 +662,9 @@ approval; the optional `--start-minimized` switch retains that workflow now.
 - Arm real messaging only after Tyler verifies the recipient and message text.
 
 ### Milestone 5 — Watchdog and startup
+
+Next for proposal; source and new runtime/startup scope are not approved. Preserve
+foreground development startup until Tyler approves tray-first near completion.
 
 - Build the .NET watchdog/notification helper.
 - Add Windows sign-in startup.

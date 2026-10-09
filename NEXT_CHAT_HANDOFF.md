@@ -1,4 +1,100 @@
-# Next-chat handoff — Milestone 4 simulated messaging; queued low-light tracking follow-up
+# Next-chat handoff - Milestone 5 proposal; queued matching-light tracking check
+
+## October 8: Milestone 4 simulated implementation complete
+
+Tyler approved Milestone 4 source implementation in this conversation and clarified
+that every scheduled attempt, including failed/unknown outcomes, counts toward ten.
+Fall-to-choking preserves the immediate intent and begins a new ten-attempt budget;
+repeated Choking during that episode does not create another budget.
+
+The pure in-memory messaging session uses synthetic sender/recipient labels,
+stable session/episode/effect identities, bounded histories and exactly-once effect
+consumption. Engine alone owns fixed deadlines, 60-second repeats and stopping
+rules. Fake submission/accepted/sent/delivered/rejected/failed/undelivered/delayed/
+unknown outcomes are separate from intent counts. Errors remain visible in the
+warning details; opted-in local output uses the existing audio owner and silence
+priorities. There is no network adapter, credential input or normal messaging file.
+
+Replies require a fresh unseen ID, matching synthetic sender/recipient/session and
+a creation time after the current episode began and no later than its clock.
+Valid replies stop repeats without resolving choking or implying caregiver presence.
+Arrival stops repeats and sets persistent warning silence. Reliable departure
+restores saved simulated audio independently of armed state, while unresolved
+choking output remains silent until manual Cancel/Resolve. Delivery never resolves
+an incident. Contact 911 remains visual-only with its configurable existing hotkey.
+
+Final verification: 636 synthetic tests passed using the existing isolated .venv,
+fresh redirected scratch/AppData/temp/caches, fake devices/output and offscreen Qt.
+Dependency check passed. Cases include ten failed/unknown attempts without immediate retries,
+new choking budgets, invalid/duplicate/old replies, equal-deadline acknowledgement,
+pause-frozen delayed delivery and stale-session callback rejection. A selectable
+600-second quiet scenario exercises the cap using one-action minute advances.
+Independent source review and synthetic layout inspection checked warning details
+at 800 x 600 and a 440 x 630 dashboard, keeping essential controls reachable.
+These checks do not establish real camera/audio/VoiceAttack/fullscreen acceptance.
+
+In-memory continuation tests establish only simulation deduplication; there is no
+cross-process durable outbox, real provider integration or live alert arming.
+Real texts (including test texts) and caregiver participation normally remain
+Milestone 6 work, after separately approved credential/runtime and delivery scopes.
+No recording, Windows audio switching, startup/watchdog, personal collection,
+model/profile/settings migration or microphone listener was added. Saved hotkeys
+restore; test session and audio remain separate per-launch opt-ins. Development
+startup remains foreground until Tyler approves restoring tray-first behavior.
+The OneDrive backup, ordinary Desktop/Codex AppData namespaces, global Python and
+public website are preserved. No Computer Use session was opened or running
+monitor restarted during this implementation.
+
+The matching-light head-position/trail investigation remains queued with Tyler.
+No tracking-repair implementation is approved. Milestone 5 is next for inspection
+and proposal; its source changes and new runtime/startup/watchdog scope need approval.
+
+## Launch and exercise the completed simulation
+
+Use `C:\Codex Projects\Tyler Safety Monitor\fall_detector\Start Monitor.cmd`.
+It uses the existing isolated environment and opens the dashboard in the foreground.
+A normal launch can access the camera; use the documented `--no-camera --show`
+launch in `fall_detector/README.md` for an explicitly camera-free session.
+No relaunch or hardware/audio session was performed for this implementation.
+
+In quiet **Simulation**, select **Unacknowledged choking messages**. Selection
+stays paused. Choose a fake outcome, then use **Advance 60 Seconds Simulation**:
+first advance produces two scheduled attempts, and repeated advances reach ten at
+540 seconds; advancing to the 600-second end creates no eleventh attempt.
+Choose delayed delivery to observe its owning-clock delay, or use valid/invalid
+synthetic reply cases. The panel produces no audio or real messages.
+**Test Alerts** separately requires **Enable Test Session**; its existing audio
+button separately opts into local computer output. Fake outcome selections apply
+to future attempts. A session reset creates a fresh simulation; it does not claim
+production restart recovery. No phone numbers or credentials are needed.
+
+## Next-chat prompt
+
+> Continue Tyler Safety Monitor in C:\Codex Projects\Tyler Safety Monitor.
+> Read fall_detector/docs/TRACKING_REPAIR_CHECKPOINT.md first, then every
+> project-authored Markdown including AGENTS, blueprint, this handoff and MILESTONE_4.
+> Inspect Git/source/tests and propose Milestone 5 watchdog/startup independently
+> of the queued matching-light head-position/trail investigation. Ask before
+> Milestone 5 source changes or new runtime/credential/startup scope; this handoff
+> approves none of them. Inspect the tracking jump with Tyler when matching lighting
+> returns and ask before any repair. Preserve manual-only choking resolution,
+> arrival/reply stopping repeats while leaving its popup active, persistent warning
+> silence after reliable caregiver departure, simulated-only Contact 911 and its
+> configurable VoiceAttack hotkey. Preserve fixed timers, every-attempt ten cap,
+> new fall-to-choking budget, caregiver confirmation/departure/audio priority,
+> independent candidate-only counter and saved configurable hotkeys. VoiceAttack
+> is speech INPUT; local speech/sounds are separately opted-in OUTPUT; no microphone.
+> Keep test session/audio opt-in per launch and development startup foreground until
+> Tyler approves tray-first near completion. Defer all real SMS including test texts
+> and caregiver participation normally to Milestone 6 unless separately approved.
+> No recording, Windows audio switching or new personal collection. Preserve
+> profiles/features/settings/models, AppData namespaces, OneDrive backup/global
+> Python/public website. Audit feature conflicts and ask whenever uncertain.
+> Use isolated .venv/fresh synthetic scratch, independent review, staged privacy,
+> updated handoff/checkpoint and sensible commit/push. Use Computer Use only during
+> active inspection/actions; reset it before coding/testing/waiting.
+
+## Historical handoff entries - superseded status, preserved context
 
 ## October 8 continuation: reviewed Milestone 4 proposal, approval pending
 

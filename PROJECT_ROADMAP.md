@@ -1,5 +1,19 @@
 # Tyler Safety Monitor — Project Roadmap
 
+## October 8 current milestone update
+
+Milestone 4 simulated messaging source/tests/documentation are approved and complete
+within their fake-only scope. All 636 synthetic tests passed; see
+`fall_detector/docs/MILESTONE_4.md` for concrete cases and limits. Every scheduled
+attempt counts toward ten; fall-to-choking immediately starts a fresh budget.
+Real messaging, credentials, durable outbox/restart recovery and actual caregiver
+validation remain deferred scopes, normally Milestone 6 for real texts/sessions.
+Next: inspect and propose **Milestone 5 - Watchdog and startup**. No Milestone 5
+source or new runtime/startup scope is approved. Development remains foreground.
+The matching-light tracking check remains queued and its repair needs approval.
+Earlier dated milestone statuses below are historical and superseded here.
+
+
 ## How to use this document
 
 This file is the durable project context for future work. A new Codex task should read this file and the repository before making changes. It should not assume that it can see earlier conversation history.
@@ -243,7 +257,7 @@ and reply tests precede explicit live arming after all acceptance gates. Use
 Computer Use only during active UI inspection/actions; end/reset that automation
 session before coding or waiting unless a current UI action needs it.
 
-Read `FALL_DETECTOR_BLUEPRINT.md` and `NEXT_CHAT_HANDOFF.md`, then inspect and propose **Milestone 4 — Simulated messaging**. Obtain approval before its source-code implementation or new runtime/credential scope. Do not silently change approved safety, accessibility, privacy, or alert-escalation behavior.
+Read `FALL_DETECTOR_BLUEPRINT.md` and `NEXT_CHAT_HANDOFF.md`, then inspect and propose **Milestone 5 — Watchdog and startup**. Obtain approval before source implementation or new runtime/startup/credential scope. Do not silently change approved safety, accessibility, privacy, or alert-escalation behavior.
 
 Milestones 0 and 1 tooling are complete within the limited observation/calibration/replay scope. Milestone 1 source and documentation were approved October 5, 2026; real personalized data was not collected during that implementation. Two later separately approved safe feature sessions remain private. Tyler deferred caregiver-entry samples; true simultaneous two-person tracking remains unvalidated. Milestone 2's simulated scope was approved October 7; Milestone 3 was approved October 8 and uses configurable VoiceAttack input plus local test output. The supplied lighting photographs were ordinary photographs, not instructed movement tests.
 
