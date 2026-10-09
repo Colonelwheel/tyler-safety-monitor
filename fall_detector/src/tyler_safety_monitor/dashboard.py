@@ -22,6 +22,7 @@ from .settings import AppSettings, load_settings, save_settings
 from .tracking import PersonTracker
 from .caregiver_status import CaregiverStatusCounter
 from .scrolling import PanelWheelGuard
+from .facial_export import FacialFrameExport
 
 
 class Preview(QWidget):
@@ -40,6 +41,7 @@ class Preview(QWidget):
         self.trajectory_segments = {}
         self.comparison_heads = ()
         self.subject_track_id = None
+        self.face_crop = None
         self.zones = {}
         self.reviewed_zones = set()
 
@@ -121,6 +123,9 @@ class Preview(QWidget):
             painter.setPen(QPen(QColor("#ef96ff"), 3))
             painter.drawRect(QRectF(x - 8, y - 8, 16, 16))
             painter.drawText(int(x + 12), int(y + 18), f"Face test {score:.0%}")
+        if self.face_crop is not None:
+            painter.setPen(QPen(QColor("#ffffff"), 3))
+            painter.drawRect(box(self.face_crop))
         if self.pending_corner:
             x = area.x() + self.pending_corner[0] * area.width()
             y = area.y() + self.pending_corner[1] * area.height()
@@ -182,6 +187,7 @@ class Dashboard(QMainWindow):
         self._pose_inputs = {}
         self._model_timestamp = -1
         self._capture_generation = 0
+        self.facial_export = FacialFrameExport()
         self.cleanup_finished.connect(self.finish_cleanup)
         self.preview = Preview()
         self.preview.scene = self.settings.scene
@@ -279,6 +285,16 @@ class Dashboard(QMainWindow):
         self.edit_status = QLabel("Review the picture reflection and caregiver-entry area before use.")
         self.edit_status.setWordWrap(True)
         controls.addWidget(self.edit_status)
+
+        face_note = QLabel("Optional facial gaming input • off each launch. Shares only a face crop locally in memory; existing exclusion masks still apply. No recording. Face crop is independent of safety ROI.")
+        face_note.setWordWrap(True)
+        controls.addWidget(face_note)
+        controls.addWidget(button("Select Face Region", self.begin_face_region))
+        controls.addWidget(button("Enable Face Sharing", self.enable_face_sharing))
+        controls.addWidget(button("Disable Face Sharing", self.disable_face_sharing))
+        self.face_share_status = QLabel(self.facial_export.status)
+        self.face_share_status.setWordWrap(True)
+        controls.addWidget(self.face_share_status)
 
         controls.addWidget(button("Save Settings", self.save))
         self.settings_status = QLabel(settings_status)
@@ -494,6 +510,7 @@ class Dashboard(QMainWindow):
         self.capture = CameraCapture(CameraSettings(index=self.settings.camera_index,
                                       backend=self.settings.backend, fps=self.settings.fps))
         self.capture.start()
+        self.facial_export.set_source(self.capture, self.settings.scene, self._capture_generation)
         self.last_sequence = -1
         self.tracker = PersonTracker()
         self.last_pose_timestamp = -1
@@ -510,6 +527,11 @@ class Dashboard(QMainWindow):
             self.pose_status.setText("Pose model missing. Download it explicitly using the documented model command.")
 
     def pause_camera(self) -> None:
+        self.facial_export.invalidate_geometry("Camera paused.")
+        if self.edit_mode == "face_crop":
+            self.cancel_edit()
+        self.preview.face_crop = None
+        self.face_share_status.setText(self.facial_export.status)
         self.camera_summary.setText("Camera paused")
         self.caregiver_counter.reset("Camera paused; current people unavailable.")
         self.render_caregiver_status()
@@ -565,6 +587,27 @@ class Dashboard(QMainWindow):
             self._restart_requested = False
             self._start_camera()
 
+    def begin_face_region(self) -> None:
+        if (self.capture is None or self.capture.snapshot().state != "LIVE"
+                or self.tools.player is not None or self.tools.state in {"delay", "capturing"}):
+            self.face_share_status.setText("Use the live camera view with calibration idle before selecting a face region.")
+            return
+        self.disable_face_sharing()
+        self.begin_edit("face_crop")
+        self.face_share_status.setText("Tap the first face-region corner, then its opposite corner. Safety ROI and masks stay intact.")
+
+    def enable_face_sharing(self) -> None:
+        if self.tools.player is not None or self.tools.state in {"delay", "capturing"}:
+            self.face_share_status.setText("Return to live view with calibration idle before enabling face sharing.")
+            return
+        self.facial_export.set_source(self.capture, self.settings.scene, self._capture_generation)
+        self.facial_export.start()
+        self.face_share_status.setText(self.facial_export.status)
+
+    def disable_face_sharing(self) -> None:
+        self.facial_export.stop()
+        self.face_share_status.setText(self.facial_export.status)
+
     def begin_edit(self, mode: str) -> None:
         if self.tools.state in {"delay", "capturing"}:
             self.edit_status.setText("Stop / Review calibration before editing the scene.")
@@ -602,6 +645,19 @@ class Dashboard(QMainWindow):
         else:
             try:
                 rect = Rect.from_corners(*self.preview.pending_corner, x, y)
+                if self.edit_mode == "face_crop":
+                    if self.capture is None or self.capture.snapshot().state != "LIVE" or self.tools.player is not None:
+                        self.cancel_edit()
+                        self.face_share_status.setText("Camera changed during selection; no face region applied.")
+                        return
+                    self.facial_export.select_crop(rect)
+                    self.preview.face_crop = rect
+                    self.face_share_status.setText(self.facial_export.status)
+                    self.edit_status.setText("Face region selected in memory for this launch. Safety ROI and masks unchanged.")
+                    self.edit_mode = None
+                    self.preview.pending_corner = None
+                    self.preview.update()
+                    return
                 if self.edit_mode.startswith("zone:"):
                     self.tools.set_zone(self.edit_mode.split(":", 1)[1], rect)
                     self.edit_status.setText("Zone proposed. Review it in Calibration / Replay before saving.")
@@ -661,6 +717,11 @@ class Dashboard(QMainWindow):
             return
         self.caregiver_counter.reset("Scene changed; previous person evidence discarded.")
         self.render_caregiver_status()
+        self.facial_export.invalidate_geometry("Safety scene changed.")
+        if self.edit_mode == "face_crop":
+            self.cancel_edit()
+        self.preview.face_crop = None
+        self.face_share_status.setText(self.facial_export.status)
         self.settings = replace(self.settings, scene=scene)
         self.preview.scene = scene
         self.preview.tracks = []
@@ -864,6 +925,9 @@ class Dashboard(QMainWindow):
         self.render_caregiver_status()
 
     def refresh(self) -> None:
+        self.face_share_status.setText(self.facial_export.status)
+        if self.facial_export.crop is None:
+            self.preview.face_crop = None
         epoch = self.tools.subject.state.selection_epoch
         if epoch != self._caregiver_subject_epoch:
             self.caregiver_counter.reset("Tyler designation changed; previous confirmation cleared.")
@@ -967,6 +1031,7 @@ class Dashboard(QMainWindow):
         self.warning_test.close_resources()
         self.hotkeys.close()
         self.pause_camera()
+        self.facial_export.close()
         if self._cleanup_thread is not None:
             # Exiting may wait for bounded cleanup; ordinary controls never do.
             self._cleanup_thread.join(timeout=3.5)
